@@ -1,6 +1,10 @@
 // This has been adapted from the Vulkan tutorial
 
 #include "modules/Starter.hpp"
+//#include "modules/TextMaker.hpp"
+
+using namespace std;
+using namespace glm;
 
 // MonumentSimulator: demo subclass of BaseProject
 class MonumentSimulator : public BaseProject {
@@ -49,9 +53,13 @@ void MonumentSimulator::localCleanup() {
     std::cout << "localCleanup()\n";
 }
 
-
+//-----------------------------------------------------------------------------------------------------
+/*
+ * MAIN FUNCTION: do not touch this
+ */
 int main() {
     MonumentSimulator app;
+
     try {
         app.run();
     } catch (const std::exception& e) {
