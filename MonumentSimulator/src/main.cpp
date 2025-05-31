@@ -19,7 +19,12 @@ protected:
     // Here you set the main application parameters
 	void setWindowParameters()
 	{
-		std::cout << "this is an exemple()\n";
+		// Window size, title and initial background
+		windowWidth = 1200;
+		windowHeight = 800;
+		windowTitle = "Monument Simulator";
+		windowResizable = GLFW_TRUE;
+		initialBackgroundColor = { 0.5f, 0.5f, 0.5f, 1.0f };
 	}
 
 	// What to do when the window changes size
@@ -60,13 +65,13 @@ protected:
 	// You send to the GPU all the objects you want to draw, with their buffers and textures
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 	{
-		std::cout << "this is an exemple()\n";
+		//std::cout << "this is an exemple()\n";
 	}
 
     // Here is where you update the uniforms. Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage)
 	{
-		std::cout << "this is an exemple()\n";
+		//std::cout << "this is an exemple()\n";
 	}
 };
 //-----------------------------------------------------------------------------------------------------
