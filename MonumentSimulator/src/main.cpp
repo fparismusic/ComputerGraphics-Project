@@ -9,7 +9,7 @@ using namespace glm;
 
 vector<SingleText> outText = {
 	{5, {
-		"Monument Simulator",
+		"Drone Simulator",
 		"",
 		"Filippo Paris",
 		"Francesco Moretti",
@@ -38,7 +38,7 @@ protected:
 	bool showCommandsKeyboard = false;
 
 	// Camera controls
-	glm::vec3 CamPos = glm::vec3(0.0f, 10.0f, 50.0f);
+	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);;
 	float CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
 	// Speed controls
@@ -50,29 +50,41 @@ protected:
 
 	// --- Descriptor Set Layouts ---
 	DescriptorSetLayout
+		DSL_mountain,
+		DSL_drone,
 		DSL_skybox,
 		DSL_global;
 
 	// --- Vertex Descriptors ---
-	VertexDescriptor VD, VD_skyBox;
+	VertexDescriptor VD_phong, VD_pbr, VD_skyBox;
 
 	// --- Pipelines ---
 	Pipeline
+		P_phong,
+		P_pbr,
 		P_skyBox;
 
 	// --- Model ---
 	Model
+		M_mountain,
+		M_drone,
 		M_skyBox;
 
 	// --- Textures ---
+	Texture
+		tex_mountain_baseColor,
+		tex_drone_baseColor, tex_drone_normal, tex_drone_roughness, tex_drone_emissive;
 
 	// --- Descriptor Sets ---
 	DescriptorSet
+		DS_mountain,
+		DS_drone,
 		DS_skyBox,
 		DS_global;
 
 	// --- Uniform Buffers ---
 	UniformBufferObject
+		UBO_mountain,
 		UBO_drone;
 
 	GlobalUniformBufferObject GUBO;
@@ -91,9 +103,9 @@ protected:
 		initialBackgroundColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 		// Number of UBO and textures that we will use
-		//DPSZs.uniformBlocksInPool = 2;  // UBOs
-		//DPSZs.texturesInPool      = 3;  // Textures
-		//DPSZs.setsInPool          = 2;  // DS
+		DPSZs.uniformBlocksInPool = 4;  // UBOs
+		DPSZs.texturesInPool      = 7;  // Textures
+		DPSZs.setsInPool          = 4;  // DS
 
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -116,10 +128,33 @@ protected:
     void localInit()
     {
 		// Descriptor Layouts [what will be passed to the shaders]
+		DSL_global.init(this, {
+			// this array contains the bindings:
+			// first  element : the binding number
+			// second element : the type of element (buffer or texture) using the corresponding Vulkan constant
+			// third  element : the pipeline stage where it will be used using the corresponding Vulkan constant
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(GlobalUniformBufferObject)}
+		});
 
+		DSL_mountain.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject)},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+		});
 
-		/* Initialize vertex descriptor for Vertex { vec3 pos; vec2 UV; vec3 norm; }
-		VD.init(this, {
+		DSL_drone.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject)},
+			// binding 1: baseColor (albedo)
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			// binding 2: metallic-roughness map
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			// binding 3: emissive
+			{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			// binding 4: normal
+			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+		});
+
+		//Initialize vertex descriptor for Vertex { vec3 pos; vec2 UV; vec3 norm; }
+		VD_phong.init(this, {
 			// this array contains the bindings
 			// first  element : the binding number
 			// second element : the stride of this binging
@@ -140,27 +175,45 @@ protected:
 			//                   TANGENT  - a vec4 with the tangent vector
 			//                   OTHER    - anything else
 			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos), sizeof(vec3), POSITION},
-			{0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm),  sizeof(vec3), NORMAL},
-			{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV), sizeof(vec2), UV}
-		});*/
+			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV),  sizeof(vec2), UV},
+			{0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm), sizeof(vec3), NORMAL}
+		});
+
+		VD_pbr.init(this, {
+			{0, sizeof(VertexTan), VK_VERTEX_INPUT_RATE_VERTEX}
+		}, {
+			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexTan, pos), sizeof(vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT,   offsetof(VertexTan, UV), sizeof(vec2), UV},
+			{0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexTan, normal), sizeof(vec3), NORMAL},
+			{0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexTan, tangent), sizeof(vec4), TANGENT}
+		});
 
 		// Pipelines [Shader couples]
 		// The second parameter is the pointer to the vertex definition
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will be used in this pipeline. The first element will be set 0, and so on..
-		//P_terrain.init(this, &VD, "shaders/example.vert.spv", "shaders/example.frag.spv", { &DSL_terrain });
-		//P_terrain.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
+		P_phong.init(this, &VD_phong, "shaders/Phong.vert.spv", "shaders/Phong.frag.spv", { &DSL_global, &DSL_mountain });
+		P_phong.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
+
+		P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
+		P_pbr.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 
 		// Create models
 		// The second parameter is the pointer to the vertex definition for this model
 		// The third parameter is the file name
 		// The last is a constant specifying the file type: currently only OBJ or GLTF
-		//M_terrain.init(this, &VD, "assets/models/example.gltf", GLTF);
+		M_mountain.init(this, &VD_phong, "assets/models/mountain.gltf", GLTF);
+		M_drone.init(this, &VD_pbr, "assets/models/drone.gltf", GLTF);
+
 		// Create the textures
 		// The second parameter is the file name
-		//tex_baseColor.init(this, "assets/textures/example.png", VK_FORMAT_R8G8B8A8_SRGB, true);
-		//tex_metallicRoughness.init(this, "assets/textures/example.png", VK_FORMAT_R8G8B8A8_UNORM, true);
-		//tex_normal.init(this, "assets/textures/example.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
+		tex_mountain_baseColor.init(this, "assets/textures/Mountain/material_0_baseColor_4096.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
+
+		tex_drone_baseColor.init(this, "assets/textures/Drone/DefaultMaterial_baseColor.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
+		tex_drone_roughness.init(this, "assets/textures/Drone/DefaultMaterial_metallicRoughness.png", VK_FORMAT_R8G8B8A8_UNORM, true);
+		tex_drone_emissive.init(this, "assets/textures/Drone/DefaultMaterial_emissive.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
+		tex_drone_normal.init(this,    "assets/textures/Drone/DefaultMaterial_normal.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
+
 
 		// INIT TEXT
 		cout << "Initializing text\n";
@@ -177,10 +230,17 @@ protected:
 	void pipelinesAndDescriptorSetsInit()
 	{
 		// This creates a new pipeline (with the current surface), using its shaders
-
+		P_phong.create();
+		P_pbr.create();
 
 		// Here you define the data set
+		DS_global.init(this, &DSL_global, nullptr);
 
+		Texture* tex_mountain[1] = {&tex_mountain_baseColor};
+		DS_mountain.init(this, &DSL_mountain, tex_mountain);
+
+		Texture* tex_drone[4] = { &tex_drone_baseColor, &tex_drone_roughness, &tex_drone_emissive, &tex_drone_normal };
+		DS_drone.init(this, &DSL_drone, tex_drone);
 
 		// INIT TEXT
 		outTxt.pipelinesAndDescriptorSetsInit();
@@ -194,8 +254,13 @@ protected:
 	void pipelinesAndDescriptorSetsCleanup()
 	{
 		// Cleanup pipelines
+		P_phong.cleanup();
+		P_pbr.cleanup();
 
 		// Cleanup datasets
+		DS_global.cleanup();
+		DS_mountain.cleanup();
+		DS_drone.cleanup();
 
 		// INIT TEXT
 		outTxt.pipelinesAndDescriptorSetsCleanup();
@@ -210,12 +275,25 @@ protected:
 	void localCleanup()
 	{
 		// Cleanup textures
+		tex_mountain_baseColor.cleanup();
+
+		tex_drone_baseColor.cleanup();
+		tex_drone_roughness.cleanup();
+		tex_drone_emissive.cleanup();
+		tex_drone_normal.cleanup();
 
 		// Cleanup models
+		M_mountain.cleanup();
+		M_drone.cleanup();
 
 		// Cleanup descriptor set layouts
+		DSL_global.cleanup();
+		DSL_mountain.cleanup();
+		DSL_drone.cleanup();
 
 		// Destroy the pipelines
+		P_phong.destroy();
+		P_pbr.destroy();
 
 		// INIT TEXT
 		outTxt.localCleanup();
@@ -229,17 +307,25 @@ protected:
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 	{
 		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter binds the data set
-		//P_terrain.bind(commandBuffer);
+		P_phong.bind(commandBuffer);
 		// For a Dataset object, this command binds the corresponing dataset to the command buffer and pipeline passed in its first and second parameters.
 		// The third parameter is the number of the set being bound
 		// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
 		// This is done automatically in file Starter.hpp, however the command here needs also the index of the current image in the swap chain, passed in its last parameter binds the model
-		//DS_terrain.bind(commandBuffer, P_terrain, 0, currentImage);
+		DS_global.bind(commandBuffer, P_phong, 0, currentImage);
+		DS_mountain.bind(commandBuffer, P_phong, 1, currentImage);
+
 		// For a Model object, this command binds the corresponing index and vertex buffer
 		// to the command buffer passed in its parameter
 		// record the drawing command in the command buffer
-		//M_terrain.bind(commandBuffer);
-		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_terrain.indices.size()), 1, 0, 0, 0);
+		M_mountain.bind(commandBuffer);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_mountain.indices.size()), 1, 0, 0, 0);
+
+		P_pbr.bind(commandBuffer);
+		DS_global.bind(commandBuffer, P_pbr, 0, currentImage);
+		DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
+		M_drone.bind(commandBuffer);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0);
 
 		int txtIndex;
 		if (showStartText)
@@ -308,7 +394,7 @@ protected:
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
 
-		/*CamYaw   = CamYaw   - ROT_SPEED * deltaT * r.y;
+		CamYaw   = CamYaw   - ROT_SPEED * deltaT * r.y;
 		CamPitch = CamPitch - ROT_SPEED * deltaT * r.x;
 		CamPitch = CamPitch < glm::radians(-90.0f) ? glm::radians(-90.0f) :
 				  (CamPitch > glm::radians( 90.0f) ? glm::radians( 90.0f) : CamPitch);
@@ -330,21 +416,37 @@ protected:
 		CamPos += MOVE_SPEED * m.x * right   * deltaT;  // strafing
 		CamPos += MOVE_SPEED * m.z * up      * deltaT;  // su/giù
 
+		GUBO.cameraPos  = CamPos;
+		GUBO.lightDir   = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));  // ad esempio
+		GUBO.lightColor = glm::vec3(1.0f);
 
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		DS_global.map(currentImage, &GUBO, sizeof(GUBO), 0);
 
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,  0.096358f,  0.0f))
+			* glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 100.0f));
 
-		glm::mat4 view = glm::lookAt(CamPos, CamPos + forward, up);
+		glm::mat4 view = glm::lookAt(
+			CamPos,             // posizione della camera
+			CamPos + forward,   // punto verso cui guarda ( avanti nella direzione forward )
+			up                  // vettore "up" calcolato prima
+		);
+
 		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 100.0f);
 		proj[1][1] *= -1;  // correzione Vulkan
 
-		UBO_terrain.mvpMat = proj * view * model;
-		UBO_terrain.mMat   = model;
-		UBO_terrain.nMat   = glm::transpose(glm::inverse(model));
+		UBO_mountain.mvpMat = proj * view * model;
+		UBO_mountain.mMat   = model;
+		UBO_mountain.nMat   = glm::transpose(glm::inverse(model));
 
-		// Scrive nel buffer uniforme
-		DS_terrain.map(currentImage, &UBO_terrain, sizeof(UBO_terrain), 0);*/
+		// Scrive nel buffer uniform
+		DS_mountain.map(currentImage, &UBO_mountain, sizeof(UBO_mountain), 0);
+
+		glm::mat4 modelDrone = glm::mat4(1.0f);
+
+		UBO_drone.mvpMat = proj * view * modelDrone;
+		UBO_drone.mMat   = modelDrone;
+		UBO_drone.nMat   = glm::transpose(glm::inverse(modelDrone));
+		DS_drone.map(currentImage, &UBO_drone, sizeof(UBO_drone), 0);
 	}
 };
 //-----------------------------------------------------------------------------------------------------
