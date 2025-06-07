@@ -19,9 +19,10 @@ vector<SingleText> outText = {
 		"Press K (Keyboard)",
 		"to see the command list"
 	}, 0, 0, 0, 0, 1},
-	{5, {
+	{6, {
 		"Move with W-A-S-D | Q-E | R-F",
-		"Move mouse to look around",
+		"Move arrows to look around",
+		"Change camera with I-O-P",
 		"Press SPACE to take pictures",
 		"Press C to close this text",
 		"Press ESC to exit the simulation"
@@ -40,6 +41,13 @@ protected:
 	// Camera controls
 	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);;
 	float CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
+
+	bool seenCenter   = true;
+	bool seenFollow   = false;
+	bool seenDrone    = false;
+	glm::vec3 global_pos_drone = glm::vec3(0.0f);
+	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
+	const float deltaHeight = 4.0f;
 
 	// Speed controls
 	const float ROT_SPEED  = glm::radians(120.0f);
@@ -392,61 +400,128 @@ protected:
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
 		bool fire = false;
-		getSixAxis(deltaT, m, r, fire);
+		getSixAxis(deltaT, m, r, fire); // deltaT: time since last frame
+		getDroneInput(window, deltaT); // update drone position and orientation
+		setCameraMode(window); // set camera mode based on key presses
 
-		CamYaw   = CamYaw   - ROT_SPEED * deltaT * r.y;
-		CamPitch = CamPitch - ROT_SPEED * deltaT * r.x;
+		// proj
+		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 100.0f);
+		proj[1][1] *= -1;  // Vulkan
+
+		glm::vec3 dronePos = global_pos_drone;
+
+		// view
+		glm::mat4 view;
+		if (seenCenter) {
+			glm::vec3 camP = dronePos + glm::vec3(0,0,deltaHeight);
+			view = LookAtMat(camP, dronePos, 0.0f);
+		}
+		else if (seenFollow) {
+			glm::vec3 camP = dronePos + glm::vec3(0,deltaHeight,deltaHeight/2);
+			view = LookInDirMat(camP, glm::vec3(droneYaw,dronePitch,droneRoll));
+		}
+		else if (seenDrone) {
+			glm::vec3 camP = dronePos + glm::vec3(0.0f,0.5f,0.0f);
+			view = LookInDirMat(camP, glm::vec3(droneYaw,dronePitch,droneRoll));
+		} else {}
+
+		CamPos = glm::vec3(glm::inverse(view)[3]);
+
+/*		CamYaw   = CamYaw   - ROT_SPEED * deltaT * r.y; // camera rotation around Y axis
+		CamPitch = CamPitch - ROT_SPEED * deltaT * r.x; // camera rotation around X axis
 		CamPitch = CamPitch < glm::radians(-90.0f) ? glm::radians(-90.0f) :
-				  (CamPitch > glm::radians( 90.0f) ? glm::radians( 90.0f) : CamPitch);
-		CamRoll = CamRoll - ROT_SPEED * deltaT * r.z;
+				  (CamPitch > glm::radians( 90.0f) ? glm::radians( 90.0f) : CamPitch); //clamp
+		CamRoll = CamRoll - ROT_SPEED * deltaT * r.z; // camera rotation around Z axis
 
-		// Rotazione completa: roll (Z) → pitch (X) → yaw (Y)
+		// Complete Rotation: roll (Z) → pitch (X) → yaw (Y)
 		glm::mat4 R_yaw   = glm::rotate(glm::mat4(1.0f), CamYaw,   glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 R_pitch = glm::rotate(glm::mat4(1.0f), CamPitch, glm::vec3(1.0f, 0.0f, 0.0f));
 		glm::mat4 R_roll  = glm::rotate(glm::mat4(1.0f), CamRoll,  glm::vec3(0.0f, 0.0f, 1.0f));
-		// Rotazione finale: R = Yaw * Pitch * Roll
 		glm::mat4 R = R_yaw * R_pitch * R_roll;
-		// Calcolo i versori dalla matrice
-		glm::vec3 forward = glm::normalize(glm::vec3(R * glm::vec4(0, 0, -1, 0))); // -Z
-		glm::vec3 right   = glm::normalize(glm::vec3(R * glm::vec4(1, 0,  0, 0))); // +X
-		glm::vec3 up      = glm::normalize(glm::vec3(R * glm::vec4(0, 1,  0, 0))); // +Y
+		glm::vec3 forward = glm::normalize(glm::vec3(R * glm::vec4(0, 0, -1, 0)));
+		glm::vec3 right   = glm::normalize(glm::vec3(R * glm::vec4(1, 0,  0, 0)));
+		glm::vec3 up      = glm::normalize(glm::vec3(R * glm::vec4(0, 1,  0, 0)));
 
-		// W/A/S/D/R/F
-		CamPos += MOVE_SPEED * m.y * forward * deltaT;  // avanti/indietro
-		CamPos += MOVE_SPEED * m.x * right   * deltaT;  // strafing
-		CamPos += MOVE_SPEED * m.z * up      * deltaT;  // su/giù
-
+		// Position of the camera in the world
+		CamPos += MOVE_SPEED * m.y * forward * deltaT;  // W/S
+		CamPos += MOVE_SPEED * m.x * right   * deltaT;  // A/D
+		CamPos += MOVE_SPEED * m.z * up      * deltaT;  // R/F
+*/
 		GUBO.cameraPos  = CamPos;
-		GUBO.lightDir   = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));  // ad esempio
+		GUBO.lightDir   = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));
 		GUBO.lightColor = glm::vec3(1.0f);
-
 		DS_global.map(currentImage, &GUBO, sizeof(GUBO), 0);
 
+		// UBO mountain
 		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,  0.096358f,  0.0f))
-			* glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 100.0f));
-
-		glm::mat4 view = glm::lookAt(
-			CamPos,             // posizione della camera
-			CamPos + forward,   // punto verso cui guarda ( avanti nella direzione forward )
-			up                  // vettore "up" calcolato prima
-		);
-
-		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 100.0f);
-		proj[1][1] *= -1;  // correzione Vulkan
+							* glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 100.0f));
 
 		UBO_mountain.mvpMat = proj * view * model;
 		UBO_mountain.mMat   = model;
 		UBO_mountain.nMat   = glm::transpose(glm::inverse(model));
-
-		// Scrive nel buffer uniform
 		DS_mountain.map(currentImage, &UBO_mountain, sizeof(UBO_mountain), 0);
 
-		glm::mat4 modelDrone = glm::mat4(1.0f);
+		// UBO drone
+		// model
+		glm::mat4 modelDrone = glm::translate(glm::mat4(1.0f), global_pos_drone)
+							 * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
+							 * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
+							 * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1))
+		                     * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0));;
 
 		UBO_drone.mvpMat = proj * view * modelDrone;
-		UBO_drone.mMat   = modelDrone;
-		UBO_drone.nMat   = glm::transpose(glm::inverse(modelDrone));
+		UBO_drone.mMat = modelDrone;
+		UBO_drone.nMat = glm::transpose(glm::inverse(modelDrone));
 		DS_drone.map(currentImage, &UBO_drone, sizeof(UBO_drone), 0);
+	}
+
+	//************************************************************************************************
+	//************************************************************************************************
+	//************************************************************************************************
+	// Here are some util functions
+	glm::mat4   LookAtMat(glm::vec3 Pos, glm::vec3 aim, float Roll) {
+	    glm::mat4 I(1.0f);
+	    glm::mat4 R = glm::rotate(I, glm::radians(Roll), glm::vec3(0,1,0));
+	    return R * glm::lookAt(Pos, aim, glm::vec3(0,1,0));
+	}
+
+	glm::mat4   LookInDirMat(glm::vec3 Pos, glm::vec3 Angs) {
+	    glm::mat4 I(1.0f);
+	    glm::mat4 T   = glm::translate(I, -Pos);
+	    glm::mat4 Ry  = glm::rotate(I, -Angs.x, glm::vec3(0,1,0));
+	    glm::mat4 Rx  = glm::rotate(I, -Angs.y, glm::vec3(1,0,0));
+	    glm::mat4 Rz  = glm::rotate(I, -Angs.z, glm::vec3(0,0,1));
+	    return Rz * Rx * Ry * T;
+	}
+
+	void setCameraMode(GLFWwindow* w) {
+	    if (glfwGetKey(w, GLFW_KEY_I)) { seenCenter=true; seenFollow=false; seenDrone=false;  } // 3-rd
+	    if (glfwGetKey(w, GLFW_KEY_O)) { seenCenter=false; seenFollow=true; seenDrone=false;  } // 1-st
+	    if (glfwGetKey(w, GLFW_KEY_P)) { seenCenter=false; seenFollow=false; seenDrone=true;  } // 1-st
+	}
+
+	void getDroneInput(GLFWwindow* w, float deltaT) {
+	    const float ROT_SPEED  = glm::radians(45.0f);
+	    const float MOVE_SPEED = 4.0f;
+
+	    // rotations
+	    if(glfwGetKey(w, GLFW_KEY_LEFT))  droneYaw   += deltaT * ROT_SPEED;
+	    if(glfwGetKey(w, GLFW_KEY_RIGHT)) droneYaw   -= deltaT * ROT_SPEED;
+	    if(glfwGetKey(w, GLFW_KEY_UP))    dronePitch += deltaT * ROT_SPEED;
+	    if(glfwGetKey(w, GLFW_KEY_DOWN))  dronePitch -= deltaT * ROT_SPEED;
+	    if(glfwGetKey(w, GLFW_KEY_Q))     droneRoll  -= deltaT * ROT_SPEED;
+	    if(glfwGetKey(w, GLFW_KEY_E))     droneRoll  += deltaT * ROT_SPEED;
+
+		// traslations
+	    glm::mat4 R_yaw = glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0));
+	    glm::vec3 forward = glm::vec3(R_yaw * glm::vec4(0,0,-1,0));
+	    glm::vec3 right   = glm::vec3(R_yaw * glm::vec4(1,0, 0,0));
+	    if(glfwGetKey(w, GLFW_KEY_W))    global_pos_drone += MOVE_SPEED * forward * deltaT;
+	    if(glfwGetKey(w, GLFW_KEY_S))    global_pos_drone -= MOVE_SPEED * forward * deltaT;
+	    if(glfwGetKey(w, GLFW_KEY_D))    global_pos_drone += MOVE_SPEED * right   * deltaT;
+	    if(glfwGetKey(w, GLFW_KEY_A))    global_pos_drone -= MOVE_SPEED * right   * deltaT;
+	    if(glfwGetKey(w, GLFW_KEY_R))    global_pos_drone += MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
+	    if(glfwGetKey(w, GLFW_KEY_F))    global_pos_drone -= MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
 	}
 };
 //-----------------------------------------------------------------------------------------------------
