@@ -26,6 +26,11 @@ struct GlobalUniformBufferObject {
 	alignas(16) glm::vec3 lightColor;
 };
 
+struct SkyBoxUniformBufferObject {
+	alignas(16) glm::mat4 mvpMat;
+	alignas(4) float time;		// Field for time
+};
+
 // The vertices data structures
 struct Vertex {
 	glm::vec3 pos;
@@ -38,4 +43,9 @@ struct VertexTan {
 	glm::vec2 UV;
 	glm::vec3 normal;
 	glm::vec4 tangent;
+};
+
+struct skyBoxVertex {
+	glm::vec3 pos;
+	glm::vec2 uv;
 };

@@ -72,12 +72,13 @@ protected:
 
 	// Time
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+	float totalElapsedTime = 0.0f;
 
 	// --- Descriptor Set Layouts ---
 	DescriptorSetLayout
 		DSL_mountain,
 		DSL_drone,
-		DSL_skybox,
+		DSL_skyBox,
 		DSL_global;
 
 	// --- Vertex Descriptors ---
@@ -98,7 +99,8 @@ protected:
 	// --- Textures ---
 	Texture
 		tex_mountain_baseColor,
-		tex_drone_baseColor, tex_drone_normal, tex_drone_roughness, tex_drone_emissive;
+		tex_drone_baseColor, tex_drone_normal, tex_drone_roughness, tex_drone_emissive,
+		tex_skyBox;
 
 	// --- Descriptor Sets ---
 	DescriptorSet
@@ -112,6 +114,7 @@ protected:
 		UBO_mountain,
 		UBO_drone;
 
+	SkyBoxUniformBufferObject UBO_skyBox;
 	GlobalUniformBufferObject GUBO;
 
 	//************************************************************************************************
@@ -128,9 +131,9 @@ protected:
 		initialBackgroundColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 		// Number of UBO and textures that we will use
-		DPSZs.uniformBlocksInPool = 4;  // UBOs
-		DPSZs.texturesInPool      = 7;  // Textures
-		DPSZs.setsInPool          = 4;  // DS
+		DPSZs.uniformBlocksInPool = 5;  // UBOs
+		DPSZs.texturesInPool      = 8;  // Textures
+		DPSZs.setsInPool          = 5;  // DS
 
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -178,6 +181,12 @@ protected:
 			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
 		});
 
+		DSL_skyBox.init(this, {
+				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(SkyBoxUniformBufferObject)},
+				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+				{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyBoxUniformBufferObject)}		// Uniform buffer for time
+		});
+
 		//Initialize vertex descriptor for Vertex { vec3 pos; vec2 UV; vec3 norm; }
 		VD_phong.init(this, {
 			// this array contains the bindings
@@ -213,6 +222,13 @@ protected:
 			{0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexTan, tangent), sizeof(vec4), TANGENT}
 		});
 
+		VD_skyBox.init(this, {
+			{0, sizeof(skyBoxVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+		}, {
+			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(skyBoxVertex, pos), sizeof(glm::vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT,   offsetof(VertexTan, UV), sizeof(vec2), UV},
+		});
+
 		// Pipelines [Shader couples]
 		// The second parameter is the pointer to the vertex definition
 		// Third and fourth parameters are respectively the vertex and fragment shaders
@@ -223,12 +239,16 @@ protected:
 		P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
 		P_pbr.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 
+		P_skyBox.init(this, &VD_skyBox, "shaders/SkyBox.vert.spv", "shaders/Skybox.frag.spv", { &DSL_skyBox });
+		P_skyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
+
 		// Create models
 		// The second parameter is the pointer to the vertex definition for this model
 		// The third parameter is the file name
 		// The last is a constant specifying the file type: currently only OBJ or GLTF
 		M_mountain.init(this, &VD_phong, "assets/models/mountain.gltf", GLTF);
 		M_drone.init(this, &VD_pbr, "assets/models/drone.gltf", GLTF);
+		M_skyBox.init(this, &VD_skyBox, "assets/models/skybox.gltf", GLTF);
 
 		// Create the textures
 		// The second parameter is the file name
@@ -239,6 +259,7 @@ protected:
 		tex_drone_emissive.init(this, "assets/textures/Drone/DefaultMaterial_emissive.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
 		tex_drone_normal.init(this,    "assets/textures/Drone/DefaultMaterial_normal.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
 
+		tex_skyBox.init(this, "assets/textures/Scene_-_Root_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 
 		// INIT TEXT
 		cout << "Initializing text\n";
@@ -257,6 +278,7 @@ protected:
 		// This creates a new pipeline (with the current surface), using its shaders
 		P_phong.create();
 		P_pbr.create();
+		P_skyBox.create();
 
 		// Here you define the data set
 		DS_global.init(this, &DSL_global, nullptr);
@@ -266,6 +288,9 @@ protected:
 
 		Texture* tex_drone[4] = { &tex_drone_baseColor, &tex_drone_roughness, &tex_drone_emissive, &tex_drone_normal };
 		DS_drone.init(this, &DSL_drone, tex_drone);
+
+		Texture* tex_sky[1] = {&tex_skyBox};
+		DS_skyBox.init(this, &DSL_skyBox, tex_sky);
 
 		// INIT TEXT
 		outTxt.pipelinesAndDescriptorSetsInit();
@@ -281,11 +306,13 @@ protected:
 		// Cleanup pipelines
 		P_phong.cleanup();
 		P_pbr.cleanup();
+		P_skyBox.cleanup();
 
 		// Cleanup datasets
 		DS_global.cleanup();
 		DS_mountain.cleanup();
 		DS_drone.cleanup();
+		DS_skyBox.cleanup();
 
 		// INIT TEXT
 		outTxt.pipelinesAndDescriptorSetsCleanup();
@@ -307,18 +334,23 @@ protected:
 		tex_drone_emissive.cleanup();
 		tex_drone_normal.cleanup();
 
+		tex_skyBox.cleanup();
+
 		// Cleanup models
 		M_mountain.cleanup();
 		M_drone.cleanup();
+		M_skyBox.cleanup();
 
 		// Cleanup descriptor set layouts
 		DSL_global.cleanup();
 		DSL_mountain.cleanup();
 		DSL_drone.cleanup();
+		DSL_skyBox.cleanup();
 
 		// Destroy the pipelines
 		P_phong.destroy();
 		P_pbr.destroy();
+		P_skyBox.destroy();
 
 		// INIT TEXT
 		outTxt.localCleanup();
@@ -360,6 +392,12 @@ protected:
 		DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
 		M_drone.bind(commandBuffer);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0);
+
+		// P_skyBox pipeline
+		P_skyBox.bind(commandBuffer);
+		M_skyBox.bind(commandBuffer);
+		DS_skyBox.bind(commandBuffer, P_skyBox, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0);
 
 		int txtIndex;
 		if (showStartText)
@@ -461,6 +499,7 @@ protected:
 		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire); // deltaT: time since last frame
+		totalElapsedTime += deltaT;
 		getDroneInput(window, deltaT); // update drone position and orientation
 		setCameraMode(window); // set camera mode based on key presses
 
@@ -533,6 +572,11 @@ protected:
 		UBO_drone.mMat = modelDrone;
 		UBO_drone.nMat = glm::transpose(glm::inverse(modelDrone));
 		DS_drone.map(currentImage, &UBO_drone, sizeof(UBO_drone), 0);
+
+		// Sky Box UBO update
+		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view));
+		UBO_skyBox.time = totalElapsedTime;
+		DS_skyBox.map(currentImage, &UBO_skyBox, sizeof(UBO_skyBox), 0);
 	}
 
 	//************************************************************************************************
