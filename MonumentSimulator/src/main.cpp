@@ -25,14 +25,31 @@ vector<SingleText> outText = {
 		"Change camera with I-O-P",
 		"Press SPACE to take pictures",
 		"Press C to close this text",
-		"Press ESC to exit the simulation"
+		"Press ESC to return to the menu"
+	}, 0, 0, 0, 0, 1},
+	{3, {
+		" [ENTER] Start Simulation ",
+		" [H] Help & Controls",
+		" [ESC] Exit"
 	}, 0, 0, 0, 0, 1}
 }; // HERE WE CAN SHOW OUR GAME INSTRUCTIONS
+
+// --- Game States ---
+enum class AppState {
+	Menu,
+	Playing,
+	Help,
+	Exiting
+};
 
 // MonumentSimulator: subclass of BaseProject
 class MonumentSimulator : public BaseProject {
 protected:
 
+	// --- Menu fields ---
+	AppState state = AppState::Menu;
+
+	// --- Window parameters ---
 	float Ar; // Aspect Ratio
 	TextMaker outTxt;
 	bool showStartText = true;
@@ -314,6 +331,15 @@ protected:
 	// You send to the GPU all the objects you want to draw, with their buffers and textures
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 	{
+		if (state == AppState::Menu) {
+			outTxt.populateCommandBuffer(commandBuffer, currentImage, 3);
+			return;
+		}
+		if (state == AppState::Help) {
+			outTxt.populateCommandBuffer(commandBuffer, currentImage, 2);
+			return;
+		}
+
 		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter binds the data set
 		P_phong.bind(commandBuffer);
 		// For a Dataset object, this command binds the corresponing dataset to the command buffer and pipeline passed in its first and second parameters.
@@ -352,15 +378,49 @@ protected:
     // Here is where you update the uniforms. Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage)
 	{
+		bool escPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+		bool hPressed   = glfwGetKey(window, GLFW_KEY_H)      == GLFW_PRESS;
+		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
+		bool enterPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
+
+		switch (state)
+		{
+		case AppState::Help:
+			if (cPressed) {
+				state = AppState::Menu;
+				RebuildPipeline();
+			}
+			break;
+
+		case AppState::Menu:
+			if (escPressed) {
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+			}
+			else if (hPressed) {
+				state = AppState::Help;
+				RebuildPipeline();
+			}
+			else if (enterPressed) {
+				state = AppState::Playing;
+				RebuildPipeline();
+			}
+			break;
+
+		case AppState::Playing:
+			if (escPressed) {
+				state = AppState::Menu;
+				RebuildPipeline();
+			}
+			break;
+		}
+		//-----------------------------------------------------------------------------------------------------
+		//-----------------------------------------------------------------------------------------------------
+		// State == Playing: update the game logic
 		float time = chrono::duration<float>(chrono::high_resolution_clock::now() - startTime).count();
 		static int index = 0;
 		static bool debounce = false;
 		static int curDebounce = 0;
 
-		// Standard procedure to quit when the ESC key is pressed
-		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
-			glfwSetWindowShouldClose(window, GL_TRUE);
-		}
 		// First, we manage the text display
 		if (showStartText) {
 			if (time > 5.0f) {
