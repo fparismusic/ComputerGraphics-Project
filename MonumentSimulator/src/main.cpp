@@ -182,9 +182,8 @@ protected:
 		});
 
 		DSL_skyBox.init(this, {
-				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(SkyBoxUniformBufferObject)},
-				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-				{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyBoxUniformBufferObject)}		// Uniform buffer for time
+				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyBoxUniformBufferObject)},
+				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0}
 		});
 
 		//Initialize vertex descriptor for Vertex { vec3 pos; vec2 UV; vec3 norm; }
@@ -226,7 +225,7 @@ protected:
 			{0, sizeof(skyBoxVertex), VK_VERTEX_INPUT_RATE_VERTEX}
 		}, {
 			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(skyBoxVertex, pos), sizeof(glm::vec3), POSITION},
-			{0, 1, VK_FORMAT_R32G32_SFLOAT,   offsetof(VertexTan, UV), sizeof(vec2), UV},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT,   offsetof(skyBoxVertex, UV), sizeof(vec2), UV},
 		});
 
 		// Pipelines [Shader couples]
@@ -234,13 +233,13 @@ protected:
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will be used in this pipeline. The first element will be set 0, and so on..
 		P_phong.init(this, &VD_phong, "shaders/Phong.vert.spv", "shaders/Phong.frag.spv", { &DSL_global, &DSL_mountain });
-		P_phong.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
+		P_phong.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
 
 		P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
 		P_pbr.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 
-		P_skyBox.init(this, &VD_skyBox, "shaders/SkyBox.vert.spv", "shaders/Skybox.frag.spv", { &DSL_skyBox });
-		P_skyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
+		P_skyBox.init(this, &VD_skyBox, "shaders/SkyBox.vert.spv", "shaders/Skybox.frag.spv", { &DSL_global, &DSL_skyBox });
+		P_skyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
 
 		// Create models
 		// The second parameter is the pointer to the vertex definition for this model
@@ -395,8 +394,9 @@ protected:
 
 		// P_skyBox pipeline
 		P_skyBox.bind(commandBuffer);
+		DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
+		DS_skyBox.bind(commandBuffer, P_skyBox, 1, currentImage);
 		M_skyBox.bind(commandBuffer);
-		DS_skyBox.bind(commandBuffer, P_skyBox, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0);
 
 		int txtIndex;
@@ -546,8 +546,11 @@ protected:
 		CamPos += MOVE_SPEED * m.x * right   * deltaT;  // A/D
 		CamPos += MOVE_SPEED * m.z * up      * deltaT;  // R/F
 */
-		GUBO.cameraPos  = CamPos;
-		GUBO.lightDir   = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));
+		GUBO.proj = proj;
+		GUBO.view = view;
+		GUBO.cameraPos = CamPos;
+		GUBO.time = totalElapsedTime;
+		GUBO.lightDir = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));
 		GUBO.lightColor = glm::vec3(1.0f);
 		DS_global.map(currentImage, &GUBO, sizeof(GUBO), 0);
 
@@ -575,7 +578,6 @@ protected:
 
 		// Sky Box UBO update
 		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view));
-		UBO_skyBox.time = totalElapsedTime;
 		DS_skyBox.map(currentImage, &UBO_skyBox, sizeof(UBO_skyBox), 0);
 	}
 

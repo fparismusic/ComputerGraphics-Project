@@ -1,7 +1,7 @@
 #version 450
 
 // UBO globale (set=0, binding=0)
-layout(set = 0, binding = 0) uniform GlobalUBO {
+layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
     vec3 cameraPos;
     vec3 lightDir;
     vec3 lightColor;
