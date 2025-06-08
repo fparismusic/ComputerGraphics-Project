@@ -4,7 +4,7 @@
 // set 0, binding 0: Global UBO (cameraPos, lightDir, lightColor, ecc.)
 // set 1, binding 1: sampler2D della baseColor della montagna
 
-layout(set = 0, binding = 0) uniform GlobalUBO {
+layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
     // NOTE: every vec3 is 16 byte in std140, so we add padding
     vec3 cameraPos;          // position of the camera (world‐space)
     vec3 lightDir;           // light direction (world‐space, directed to the mesh)
