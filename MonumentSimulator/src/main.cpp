@@ -550,8 +550,7 @@ protected:
 		GUBO.view = view;
 		GUBO.cameraPos = CamPos;
 		GUBO.time = totalElapsedTime;
-		GUBO.lightDir = glm::normalize(glm::vec3(0.5f, -1.0f, 0.3f));
-		GUBO.lightColor = glm::vec3(1.0f);
+		updateGlobalUBO(GUBO, totalElapsedTime);
 		DS_global.map(currentImage, &GUBO, sizeof(GUBO), 0);
 
 		// UBO mountain
@@ -629,6 +628,41 @@ protected:
 	    if(glfwGetKey(w, GLFW_KEY_R))    global_pos_drone += MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
 	    if(glfwGetKey(w, GLFW_KEY_F))    global_pos_drone -= MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
 	}
+
+	const glm::vec3 dawnColor    = glm::vec3(0.8f, 0.4f, 0.2f);
+	const glm::vec3 noonColor    = glm::vec3(1.0f, 1.0f, 0.9f);
+	const glm::vec3 sunsetColor  = glm::vec3(0.9f, 0.3f, 0.1f);
+
+	void updateGlobalUBO(GlobalUniformBufferObject& gubo, float elapsedTime)
+	{
+		gubo.time = elapsedTime;
+
+		// 3 min  cycle
+		float t = fmod(elapsedTime, 180.0f);
+
+		// Sun color and direction
+		glm::vec3 lightColor;
+		if (t < 60.0f) {
+			float f = glm::smoothstep(0.0f, 60.0f, t);
+			lightColor = glm::mix(dawnColor, noonColor, f);
+		}
+		else if (t < 120.0f) {
+			float f = glm::smoothstep(60.0f, 120.0f, t);
+			lightColor = glm::mix(noonColor, sunsetColor, f);
+		}
+		else {
+			float f = glm::smoothstep(120.0f, 180.0f, t);
+			lightColor = glm::mix(sunsetColor, dawnColor, f);
+		}
+		gubo.lightColor = lightColor;
+
+		// Sun angle and direction
+		float angle = (t / 180.0f) * glm::two_pi<float>();  // 0→2π
+		glm::vec3 sunDir = glm::normalize(glm::vec3(cos(angle), sin(angle), 0.3f));
+		gubo.lightDir = sunDir;
+
+		gubo.lightIntensity = glm::clamp(glm::dot(sunDir, glm::vec3(0.0f, 1.0f, 0.0f)), 0.3f, 1.0f);
+	};
 };
 //-----------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------
