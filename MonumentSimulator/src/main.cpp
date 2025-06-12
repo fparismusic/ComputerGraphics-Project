@@ -1,45 +1,21 @@
 // This has been adapted from the Vulkan tutorial
+#include <sstream>
+
+#include <json.hpp>
 
 #include "modules/Starter.hpp"
 #include "modules/TextMaker.hpp"
+#include "modules/Scene.hpp"
+#include "modules/Animations.hpp"
 #include "modules/Utils.hpp"
 
 using namespace std;
 using namespace glm;
 
-vector<SingleText> outText = {
-	{5, {
-		"Drone Simulator",
-		"",
-		"Filippo Paris",
-		"Francesco Moretti",
-		"Moein Zadeh"
-	}, 0, 0, 0, 0, 0},
-	{2, {
-		"Press K (Keyboard)",
-		"to see the command list"
-	}, 0, 0, 0, 0, 1},
-	{6, {
-		"Move with W-A-S-D | Q-E | R-F",
-		"Move arrows to look around",
-		"Change camera with I-O-P",
-		"Press SPACE to take pictures",
-		"Press C to close this text",
-		"Press ESC to return to the menu"
-	}, 0, 0, 0, 0, 1},
-	{3, {
-		" [ENTER] Start Simulation ",
-		" [H] Help & Controls",
-		" [ESC] Exit"
-	}, 0, 0, 0, 0, 1}
-}; // HERE WE CAN SHOW OUR GAME INSTRUCTIONS
-
 // --- Game States ---
 enum class AppState {
 	Menu,
-	Playing,
-	Help,
-	Exiting
+	Playing
 };
 
 // MonumentSimulator: subclass of BaseProject
@@ -51,9 +27,9 @@ protected:
 
 	// --- Window parameters ---
 	float Ar; // Aspect Ratio
-	TextMaker outTxt;
 	bool showStartText = true;
 	bool showCommandsKeyboard = false;
+	TextMaker menuTxt;
 
 	// Camera controls
 	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);;
@@ -73,6 +49,9 @@ protected:
 	// Time
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
 	float totalElapsedTime = 0.0f;
+
+	// --- Render Pass ---
+	RenderPass RP;
 
 	// --- Descriptor Set Layouts ---
 	DescriptorSetLayout
@@ -128,12 +107,6 @@ protected:
 		windowHeight = 720;
 		windowTitle = "Drone Simulator";
 		windowResizable = GLFW_TRUE;
-		initialBackgroundColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-
-		// Number of UBO and textures that we will use
-		DPSZs.uniformBlocksInPool = 5;  // UBOs
-		DPSZs.texturesInPool      = 8;  // Textures
-		DPSZs.setsInPool          = 5;  // DS
 
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -146,6 +119,12 @@ protected:
 	{
 		std::cout << "Window resized to: " << w << " x " << h << "\n";
 		Ar = (float)w / (float)h;
+		// Update Render Pass
+		RP.width = w;
+		RP.height = h;
+
+		// updates the textual output
+		menuTxt.resizeScreen(w, h);
 	}
 
 	//************************************************************************************************
@@ -161,29 +140,29 @@ protected:
 			// first  element : the binding number
 			// second element : the type of element (buffer or texture) using the corresponding Vulkan constant
 			// third  element : the pipeline stage where it will be used using the corresponding Vulkan constant
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(GlobalUniformBufferObject)}
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(GlobalUniformBufferObject), 1}
 		});
 
 		DSL_mountain.init(this, {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject)},
-			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 		});
 
 		DSL_drone.init(this, {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject)},
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject), 1},
 			// binding 1: baseColor (albedo)
-			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			// binding 2: metallic-roughness map
-			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			// binding 3: emissive
-			{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			// binding 4: normal
-			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
+			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 		});
 
 		DSL_skyBox.init(this, {
-				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyBoxUniformBufferObject)},
-				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0}
+				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(SkyBoxUniformBufferObject), 1},
+				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
 		});
 
 		//Initialize vertex descriptor for Vertex { vec3 pos; vec2 UV; vec3 norm; }
@@ -225,21 +204,32 @@ protected:
 			{0, sizeof(skyBoxVertex), VK_VERTEX_INPUT_RATE_VERTEX}
 		}, {
 			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(skyBoxVertex, pos), sizeof(glm::vec3), POSITION},
-			{0, 1, VK_FORMAT_R32G32_SFLOAT,   offsetof(skyBoxVertex, UV), sizeof(vec2), UV},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(skyBoxVertex, UV), sizeof(glm::vec2), UV}
 		});
+
+		// Render pass
+		RP.init(this);
+		// sets the background
+		RP.properties[0].clearValue = {0.0f,0.9f,1.0f,1.0f};
 
 		// Pipelines [Shader couples]
 		// The second parameter is the pointer to the vertex definition
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will be used in this pipeline. The first element will be set 0, and so on..
 		P_phong.init(this, &VD_phong, "shaders/Phong.vert.spv", "shaders/Phong.frag.spv", { &DSL_global, &DSL_mountain });
-		P_phong.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
+		P_phong.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
+		P_phong.setCullMode(VK_CULL_MODE_BACK_BIT);
+		P_phong.setPolygonMode(VK_POLYGON_MODE_FILL);
 
 		P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
-		P_pbr.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
+		P_pbr.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
+		P_pbr.setCullMode(VK_CULL_MODE_NONE);
+		P_pbr.setPolygonMode(VK_POLYGON_MODE_FILL);
 
 		P_skyBox.init(this, &VD_skyBox, "shaders/SkyBox.vert.spv", "shaders/Skybox.frag.spv", { &DSL_global, &DSL_skyBox });
-		P_skyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
+		P_skyBox.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
+		P_skyBox.setCullMode(VK_CULL_MODE_NONE);
+		P_skyBox.setPolygonMode(VK_POLYGON_MODE_FILL);
 
 		// Create models
 		// The second parameter is the pointer to the vertex definition for this model
@@ -254,18 +244,27 @@ protected:
 		tex_mountain_baseColor.init(this, "assets/textures/Mountain/material_0_baseColor_4096.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 
 		tex_drone_baseColor.init(this, "assets/textures/Drone/DefaultMaterial_baseColor.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
-		tex_drone_roughness.init(this, "assets/textures/Drone/DefaultMaterial_metallicRoughness.png", VK_FORMAT_R8G8B8A8_UNORM, true);
-		tex_drone_emissive.init(this, "assets/textures/Drone/DefaultMaterial_emissive.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
+		tex_drone_roughness.init(this, "assets/textures/Drone/DefaultMaterial_metallicRoughness.png", VK_FORMAT_R8G8B8A8_SRGB, true);
+		tex_drone_emissive.init(this, "assets/textures/Drone/DefaultMaterial_emissive.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 		tex_drone_normal.init(this,    "assets/textures/Drone/DefaultMaterial_normal.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
 
-		tex_skyBox.init(this, "assets/textures/Scene_-_Root_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
+		tex_skyBox.init(this, "assets/textures/Sky_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
+
+		// Number of UBO and textures that we will use
+		DPSZs.uniformBlocksInPool = 5;  // UBOs
+		DPSZs.texturesInPool      = 8;  // Textures
+		DPSZs.setsInPool          = 5;  // DS
 
 		// INIT TEXT
 		cout << "Initializing text\n";
-		outTxt.init(this, &outText);
+		menuTxt.init(this, windowWidth, windowHeight);
 		cout << "Initialization completed!\n";
 
+		submitCommandBuffer("main", 0, populateCommandBufferAccess, this);
+
 		startTime = std::chrono::high_resolution_clock::now();
+
+		menuTxt.print(1.0f, 1.0f, "[ENTER] Start Simulation\n[H] Help & Controls\n[ESC] Exit\n",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
     }
 
 	//************************************************************************************************
@@ -274,25 +273,37 @@ protected:
     // Here you create your pipelines and Descriptor Sets!
 	void pipelinesAndDescriptorSetsInit()
 	{
+		// creates the render pass
+		RP.create();
+
 		// This creates a new pipeline (with the current surface), using its shaders
-		P_phong.create();
-		P_pbr.create();
-		P_skyBox.create();
+		P_phong.create(&RP);
+		P_pbr.create(&RP);
+		P_skyBox.create(&RP);
 
 		// Here you define the data set
-		DS_global.init(this, &DSL_global, nullptr);
+		DS_global.init(this, &DSL_global, {});
 
-		Texture* tex_mountain[1] = {&tex_mountain_baseColor};
+		std::vector<VkDescriptorImageInfo> tex_mountain = {
+			tex_mountain_baseColor.getViewAndSampler()
+		};
 		DS_mountain.init(this, &DSL_mountain, tex_mountain);
 
-		Texture* tex_drone[4] = { &tex_drone_baseColor, &tex_drone_roughness, &tex_drone_emissive, &tex_drone_normal };
+		std::vector<VkDescriptorImageInfo> tex_drone = {
+			tex_drone_baseColor.getViewAndSampler(),
+			tex_drone_roughness.getViewAndSampler(),
+			tex_drone_emissive.getViewAndSampler(),
+			tex_drone_normal.getViewAndSampler()
+		};
 		DS_drone.init(this, &DSL_drone, tex_drone);
 
-		Texture* tex_sky[1] = {&tex_skyBox};
+		std::vector<VkDescriptorImageInfo> tex_sky = {
+			tex_skyBox.getViewAndSampler()
+		};
 		DS_skyBox.init(this, &DSL_skyBox, tex_sky);
 
 		// INIT TEXT
-		outTxt.pipelinesAndDescriptorSetsInit();
+		menuTxt.pipelinesAndDescriptorSetsInit();
 	}
 
 	//************************************************************************************************
@@ -313,8 +324,11 @@ protected:
 		DS_drone.cleanup();
 		DS_skyBox.cleanup();
 
+		// Cleanup render pass
+		RP.cleanup();
+
 		// INIT TEXT
-		outTxt.pipelinesAndDescriptorSetsCleanup();
+		menuTxt.pipelinesAndDescriptorSetsCleanup();
 	}
 
 	//************************************************************************************************
@@ -351,25 +365,41 @@ protected:
 		P_pbr.destroy();
 		P_skyBox.destroy();
 
+		RP.destroy();
+
 		// INIT TEXT
-		outTxt.localCleanup();
+		menuTxt.localCleanup();
 	}
 
 	//************************************************************************************************
 	//************************************************************************************************
 	//************************************************************************************************
+	// Here it is the creation of the command buffer:
+	// You send to the GPU all the objects you want to draw,
+	// with their buffers and textures
+	static void populateCommandBufferAccess(VkCommandBuffer commandBuffer, int currentImage, void *Params)
+	{
+		// Simple trick to avoid having always 'T->'
+		//std::cout << "Populating command buffer for " << currentImage << "\n";
+		MonumentSimulator *T = (MonumentSimulator *) Params;
+		T->populateCommandBuffer(commandBuffer, currentImage);
+	}
     // Here it is the creation of the command buffer:
 	// You send to the GPU all the objects you want to draw, with their buffers and textures
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 	{
+		// Begin standard pass
+		//RP.begin(commandBuffer, currentImage);
+
 		if (state == AppState::Menu) {
-			outTxt.populateCommandBuffer(commandBuffer, currentImage, 3);
+			RP.begin(commandBuffer, currentImage);
+			menuTxt.print(0.0f, 0.0f, "[ENTER] Start Simulation\n[H] Help & Controls\n[ESC] Exit\n",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
+			menuTxt.updateCommandBuffer();
+			RP.end(commandBuffer);
 			return;
 		}
-		if (state == AppState::Help) {
-			outTxt.populateCommandBuffer(commandBuffer, currentImage, 2);
-			return;
-		}
+
+		RP.begin(commandBuffer, currentImage);
 
 		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter binds the data set
 		P_phong.bind(commandBuffer);
@@ -399,15 +429,7 @@ protected:
 		M_skyBox.bind(commandBuffer);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0);
 
-		int txtIndex;
-		if (showStartText)
-			txtIndex = 0;
-		else if (showCommandsKeyboard)
-			txtIndex = 2;
-		else
-			txtIndex = 1;
-
-		outTxt.populateCommandBuffer(commandBuffer, currentImage, txtIndex);
+		RP.end(commandBuffer);
 	}
 
 	//************************************************************************************************
@@ -423,31 +445,50 @@ protected:
 
 		switch (state)
 		{
-		case AppState::Help:
-			if (cPressed) {
-				state = AppState::Menu;
-				RebuildPipeline();
-			}
-			break;
-
 		case AppState::Menu:
 			if (escPressed) {
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 			}
 			else if (hPressed) {
-				state = AppState::Help;
-				RebuildPipeline();
+				menuTxt.print(0.0f, 0.0f, "Move with W-A-S-D | Q-E | R-F\nMove arrows to look around\nChange camera with I-O-P\nPress SPACE to take pictures\nPress C to close this text\nPress ESC to return to the menu", 2, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.updateCommandBuffer();
+			}
+			else if (cPressed) {
+				menuTxt.removeText(2);
 			}
 			else if (enterPressed) {
+				menuTxt.removeText(1);
+				menuTxt.removeText(2);
 				state = AppState::Playing;
+				cout << "Launch the simualation...!\n";
 				RebuildPipeline();
 			}
 			break;
 
 		case AppState::Playing:
 			if (escPressed) {
+				menuTxt.removeText(1);
 				state = AppState::Menu;
+				cout << "Return to Menu...!\n";
 				RebuildPipeline();
+			}
+			if (showStartText)
+			{
+				menuTxt.removeText(1);
+				menuTxt.print(0.0f, 0.0f, "Drone Simulator\n\nFilippo Paris\nFrancesco Moretti\nMoein Zadeh", 1, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.updateCommandBuffer();
+			}
+			else if (showCommandsKeyboard)
+			{
+				menuTxt.removeText(1);
+				menuTxt.print(0.0f, 0.0f, "Move with W-A-S-D | Q-E | R-F\nMove arrows to look around\nChange camera with I-O-P\nPress SPACE to take pictures\nPress C to close this text\nPress ESC to return to the menu", 1, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.updateCommandBuffer();
+			}
+			else
+			{
+				menuTxt.removeText(1);
+				menuTxt.print(0.0f, 0.0f, "Press K (Keyboard)\nto see the command list", 1, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.updateCommandBuffer();
 			}
 			break;
 		}
@@ -463,7 +504,6 @@ protected:
 		if (showStartText) {
 			if (time > 5.0f) {
 				showStartText = false;
-				RebuildPipeline();
 			}
 		}
 		// With [K] we can read game controls
@@ -551,7 +591,7 @@ protected:
 		GUBO.cameraPos = CamPos;
 		GUBO.time = totalElapsedTime;
 		updateGlobalUBO(GUBO, totalElapsedTime);
-		DS_global.map(currentImage, &GUBO, sizeof(GUBO), 0);
+		DS_global.map(currentImage, &GUBO, 0);
 
 		// UBO mountain
 		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,  0.096358f,  0.0f))
@@ -560,7 +600,7 @@ protected:
 		UBO_mountain.mvpMat = proj * view * model;
 		UBO_mountain.mMat   = model;
 		UBO_mountain.nMat   = glm::transpose(glm::inverse(model));
-		DS_mountain.map(currentImage, &UBO_mountain, sizeof(UBO_mountain), 0);
+		DS_mountain.map(currentImage, &UBO_mountain, 0);
 
 		// UBO drone
 		// model
@@ -573,11 +613,11 @@ protected:
 		UBO_drone.mvpMat = proj * view * modelDrone;
 		UBO_drone.mMat = modelDrone;
 		UBO_drone.nMat = glm::transpose(glm::inverse(modelDrone));
-		DS_drone.map(currentImage, &UBO_drone, sizeof(UBO_drone), 0);
+		DS_drone.map(currentImage, &UBO_drone, 0);
 
 		// Sky Box UBO update
 		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view));
-		DS_skyBox.map(currentImage, &UBO_skyBox, sizeof(UBO_skyBox), 0);
+		DS_skyBox.map(currentImage, &UBO_skyBox, 0);
 	}
 
 	//************************************************************************************************
