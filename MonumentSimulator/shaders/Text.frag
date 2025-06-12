@@ -6,11 +6,11 @@ layout(location = 0) out vec4 outColor;
 
 layout(binding = 0) uniform sampler2D texSampler;
 
-const vec4 FGcolor = vec4(1.0f);
-const vec4 BGcolor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-const vec4 SHcolor = vec4(0.0f, 0.0f, 0.0f, 0.5f);
+layout(push_constant) uniform PushConsts {	vec4 FGcolor;
+	vec4 BGcolor;
+	vec4 SHcolor;} pushConsts;
 
 void main() {
 	vec4 Tx = texture(texSampler, fragTexCoord);
-	outColor = Tx.r * FGcolor + Tx.g * BGcolor + Tx.b * SHcolor;
+	outColor = Tx.r * pushConsts.FGcolor +			   Tx.g * pushConsts.BGcolor +			   Tx.b * pushConsts.SHcolor;
 }

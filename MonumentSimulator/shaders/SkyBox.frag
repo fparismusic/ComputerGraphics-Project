@@ -13,10 +13,6 @@ layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
     float lightIntensity;
 } gubo;
 
-layout(set = 1 , binding = 0) uniform SkyBoxUniformBufferObject {
-    mat4 mvpMat;
-} ubo;
-
 layout(set = 1, binding = 1) uniform sampler2D skybox;
 
 layout(location = 0) in vec2 fragTexCoord;
