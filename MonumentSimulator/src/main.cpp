@@ -551,18 +551,24 @@ protected:
 
 		// view
 		glm::mat4 view;
+		const float DRONE_SCALE = 0.05f;  // or whatever your drone scale is
+
 		if (seenCenter) {
-			glm::vec3 camP = dronePos + glm::vec3(0,0,deltaHeight);
+			glm::vec3 camP = dronePos + glm::vec3(0, 0, 4.0f * DRONE_SCALE);  // adjust based on how far you want to be
 			view = LookAtMat(camP, dronePos, 0.0f);
 		}
 		else if (seenFollow) {
-			glm::vec3 camP = dronePos + glm::vec3(0,deltaHeight,deltaHeight/2);
-			view = LookInDirMat(camP, glm::vec3(droneYaw,dronePitch,droneRoll));
+			glm::vec3 camP = dronePos + glm::vec3(0, 2.0f * DRONE_SCALE, 2.0f * DRONE_SCALE);  // follow from above/behind
+			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
 		}
 		else if (seenDrone) {
-			glm::vec3 camP = dronePos + glm::vec3(0.0f,0.5f,0.0f);
-			view = LookInDirMat(camP, glm::vec3(droneYaw,dronePitch,droneRoll));
-		} else {}
+			glm::vec3 camP = dronePos + glm::vec3(glm::rotate(
+				glm::mat4(1.0f),
+				droneYaw,
+				glm::vec3(0, 1, 0)) * glm::vec4(0.0f, 0.5f * DRONE_SCALE, 0.0f, 1.0f));
+			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
+		}
+
 
 		CamPos = glm::vec3(glm::inverse(view)[3]);
 
@@ -594,8 +600,7 @@ protected:
 		DS_global.map(currentImage, &GUBO, 0);
 
 		// UBO mountain
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,  0.096358f,  0.0f))
-							* glm::scale(glm::mat4(1.0f), glm::vec3(100.0f, 100.0f, 100.0f));
+		glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));  // scale terrain up
 
 		UBO_mountain.mvpMat = proj * view * model;
 		UBO_mountain.mMat   = model;
@@ -608,7 +613,11 @@ protected:
 							 * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
 							 * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
 							 * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1))
-		                     * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0));;
+							 * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0))
+							 * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));  // Shrink drone;;
+
+
+
 
 		UBO_drone.mvpMat = proj * view * modelDrone;
 		UBO_drone.mMat = modelDrone;
@@ -616,7 +625,12 @@ protected:
 		DS_drone.map(currentImage, &UBO_drone, 0);
 
 		// Sky Box UBO update
-		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view));
+		glm::mat4 skyboxModel =
+			glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0)) *  // fix orientation
+			glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));                             // enlarge
+
+		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view)) * skyboxModel;
+
 		DS_skyBox.map(currentImage, &UBO_skyBox, 0);
 	}
 
