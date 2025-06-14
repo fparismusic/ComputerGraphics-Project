@@ -27,7 +27,7 @@ protected:
 
 	// --- Window parameters ---
 	float Ar; // Aspect Ratio
-	bool showStartText = true;
+	bool showStartText = false;
 	bool showCommandsKeyboard = false;
 	TextMaker menuTxt;
 
@@ -210,7 +210,7 @@ protected:
 		// Render pass
 		RP.init(this);
 		// sets the background
-		RP.properties[0].clearValue = {0.0f,0.9f,1.0f,1.0f};
+		RP.properties[0].clearValue = {0.204f, 0.710f, 0.212f, 0.8f};
 
 		// Pipelines [Shader couples]
 		// The second parameter is the pointer to the vertex definition
@@ -393,7 +393,7 @@ protected:
 
 		if (state == AppState::Menu) {
 			RP.begin(commandBuffer, currentImage);
-			menuTxt.print(0.0f, 0.0f, "[ENTER] Start Simulation\n[H] Help & Controls\n[ESC] Exit\n",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
+			menuTxt.print(-0.25f, 0.25f, "[ENTER] Start Simulation\n\n[H] Help and Controls\n\n[ESC] Exit\n\n",1,"CO",true,true,false,TAL_LEFT,TRH_LEFT,TRV_BOTTOM,{1.0f,0.98f,0.9f,1.0f},{0.0f,0.0f,0.0f, 0.0f});
 			menuTxt.updateCommandBuffer();
 			RP.end(commandBuffer);
 			return;
@@ -450,7 +450,7 @@ protected:
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 			}
 			else if (hPressed) {
-				menuTxt.print(0.0f, 0.0f, "Move with W-A-S-D | Q-E | R-F\nMove arrows to look around\nChange camera with I-O-P\nPress SPACE to take pictures\nPress C to close this text\nPress ESC to return to the menu", 2, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.print(-0.58f, 0.5f, "Final project of the Computer Graphics course\n\nPress C to close this text", 2, "CO", false, false, false, TAL_CENTER, TRH_LEFT, TRV_TOP, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f});
 				menuTxt.updateCommandBuffer();
 			}
 			else if (cPressed) {
@@ -460,6 +460,7 @@ protected:
 				menuTxt.removeText(1);
 				menuTxt.removeText(2);
 				state = AppState::Playing;
+				showStartText = true;
 				cout << "Launch the simualation...!\n";
 				RebuildPipeline();
 			}
@@ -475,19 +476,19 @@ protected:
 			if (showStartText)
 			{
 				menuTxt.removeText(1);
-				menuTxt.print(0.0f, 0.0f, "Drone Simulator\n\nFilippo Paris\nFrancesco Moretti\nMoein Zadeh", 1, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.print(-0.95f, -0.95f, "Drone Simulator\n\nFilippo Paris\nFrancesco Moretti\nMoein Zadeh", 1, "CO", false, true, false, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f});
 				menuTxt.updateCommandBuffer();
 			}
 			else if (showCommandsKeyboard)
 			{
 				menuTxt.removeText(1);
-				menuTxt.print(0.0f, 0.0f, "Move with W-A-S-D | Q-E | R-F\nMove arrows to look around\nChange camera with I-O-P\nPress SPACE to take pictures\nPress C to close this text\nPress ESC to return to the menu", 1, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.print(-0.95f, -0.95f, "Move with W-A-S-D | Q-E | R-F\nMove arrows to look around\nChange camera with I-O-P\nPress SPACE to take pictures\nPress C to close this text\nPress ESC to return to the menu", 1, "SS", false, true, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f});
 				menuTxt.updateCommandBuffer();
 			}
 			else
 			{
 				menuTxt.removeText(1);
-				menuTxt.print(0.0f, 0.0f, "Press K (Keyboard)\nto see the command list", 1, "CO", false, false, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.8f, 0.0f, 1.0f});
+				menuTxt.print(-0.95f, -0.95f, "Press K (Keyboard)\nto see the command list", 1, "SS", false, true, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f});
 				menuTxt.updateCommandBuffer();
 			}
 			break;
