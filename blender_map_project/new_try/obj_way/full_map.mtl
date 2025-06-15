@@ -1,0 +1,152 @@
+# Blender 4.4.3 MTL File: 'map.blend'
+# www.blender.org
+
+newmtl Material
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd /Users/francescomoretti/Desktop/computer graphics/homework/ComputerGraphics-Project/MonumentSimulator/assets/textures/Mountain/Base_Color.jpg
+
+newmtl Material.001
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.002
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.003
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.004
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.005
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.006
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.007
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.008
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.009
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.010
+Ns 562.500000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.564244 0.019571
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+
+newmtl Material.011
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd /Users/francescomoretti/Desktop/computer graphics/homework/ComputerGraphics-Project/MonumentSimulator/assets/textures/Mountain/Base_Color.jpg
+
+newmtl Material.012
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd /Users/francescomoretti/Desktop/computer graphics/homework/ComputerGraphics-Project/MonumentSimulator/assets/textures/Mountain/Base_Color.jpg
+
+newmtl Material.013
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd /Users/francescomoretti/Desktop/computer graphics/homework/ComputerGraphics-Project/MonumentSimulator/assets/textures/Mountain/Base_Color.jpg
+
+newmtl Screenshot_2022-06-09_at_16-51-21_Wall_Mural_Helicopter_lan.001
+Ns 640.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd /Users/francescomoretti/Desktop/computer graphics/homework/ComputerGraphics-Project/MonumentSimulator/assets/textures/Screenshot_2022-06-09_at_16-51-21_Wall_Mural_Helicopter_lan_baseColor.png
