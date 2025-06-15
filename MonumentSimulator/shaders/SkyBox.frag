@@ -31,8 +31,8 @@ void main() {
     vec3 linearColor = pow(srgbColor, vec3(gamma));
 
     // Computing a fog factor that increases near the horizon
-    float fogStart = 0.4;   // v-coordinate where fog starts
-    float fogEnd   = 0.7;   // v-coordinate where fog is fully horizonColor
+    float fogStart = 0.2;   // v-coordinate where fog starts
+    float fogEnd   = 0.9;   // v-coordinate where fog is fully horizonColor
     float fogFactor = smoothstep(fogStart, fogEnd, fragTexCoord.y);
 
     // Define a horizon tint using scene light

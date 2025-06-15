@@ -24,7 +24,7 @@ void main() {
     fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
 
     // We take the normal in world-space
-    fragNormal = normalize(mat3(ubo.nMat) * inNormal);
+    fragNormal = (ubo.nMat * vec4(inNormal, 0.0)).xyz;
 
     // Pass the UV coordinates to the fragment shader
     fragUV = inUV;

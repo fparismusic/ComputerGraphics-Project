@@ -23,9 +23,8 @@ void main() {
     fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
 
     // We take the normal in world-space
-    mat3 Nmat = mat3(ubo.nMat);
-    fragNormal = normalize(Nmat* inNormal);
-    fragTangent = vec4(normalize(Nmat * inTangent.xyz), inTangent.w);
+    fragNormal = normalize((ubo.nMat * vec4(inNormal, 0.0)).xyz);
+    fragTangent = vec4(normalize(mat3(ubo.mMat) * inTangent.xyz), inTangent.w);
 
     // UV coordinates
     fragUV = inUV;

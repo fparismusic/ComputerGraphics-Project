@@ -38,13 +38,13 @@ protected:
 	bool seenCenter   = true;
 	bool seenFollow   = false;
 	bool seenDrone    = false;
-	glm::vec3 global_pos_drone = glm::vec3(0.0f);
+	glm::vec3 global_pos_drone = glm::vec3(-500.0f, -242.0f, 0.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 	const float deltaHeight = 4.0f;
 
 	// Speed controls
 	const float ROT_SPEED  = glm::radians(120.0f);
-	const float MOVE_SPEED = 4.0f;
+	const float MOVE_SPEED = 8.0f;
 
 	// Time
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
@@ -77,7 +77,7 @@ protected:
 
 	// --- Textures ---
 	Texture
-		tex_mountain_baseColor,
+		tex_mountain_baseColor, tex_mountain_normal,
 		tex_drone_baseColor, tex_drone_normal, tex_drone_roughness, tex_drone_emissive,
 		tex_skyBox;
 
@@ -146,6 +146,7 @@ protected:
 		DSL_mountain.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(UniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
 		});
 
 		DSL_drone.init(this, {
@@ -218,7 +219,7 @@ protected:
 		// The last array, is a vector of pointer to the layouts of the sets that will be used in this pipeline. The first element will be set 0, and so on..
 		P_phong.init(this, &VD_phong, "shaders/Phong.vert.spv", "shaders/Phong.frag.spv", { &DSL_global, &DSL_mountain });
 		P_phong.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
-		P_phong.setCullMode(VK_CULL_MODE_BACK_BIT);
+		P_phong.setCullMode(VK_CULL_MODE_NONE);
 		P_phong.setPolygonMode(VK_POLYGON_MODE_FILL);
 
 		P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
@@ -235,13 +236,14 @@ protected:
 		// The second parameter is the pointer to the vertex definition for this model
 		// The third parameter is the file name
 		// The last is a constant specifying the file type: currently only OBJ or GLTF
-		M_mountain.init(this, &VD_phong, "assets/models/mountain.gltf", GLTF);
+		M_mountain.init(this, &VD_phong, "assets/models/snowyMountain.obj", OBJ);
 		M_drone.init(this, &VD_pbr, "assets/models/drone.gltf", GLTF);
 		M_skyBox.init(this, &VD_skyBox, "assets/models/skybox.gltf", GLTF);
 
 		// Create the textures
 		// The second parameter is the file name
-		tex_mountain_baseColor.init(this, "assets/textures/Mountain/material_0_baseColor_4096.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
+		tex_mountain_baseColor.init(this, "assets/textures/Mountain/Base_Color.jpg", VK_FORMAT_R8G8B8A8_SRGB, true);
+		tex_mountain_normal.init(this, "assets/textures/Mountain/Normal_Map.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
 
 		tex_drone_baseColor.init(this, "assets/textures/Drone/DefaultMaterial_baseColor.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 		tex_drone_roughness.init(this, "assets/textures/Drone/DefaultMaterial_metallicRoughness.png", VK_FORMAT_R8G8B8A8_SRGB, true);
@@ -252,7 +254,7 @@ protected:
 
 		// Number of UBO and textures that we will use
 		DPSZs.uniformBlocksInPool = 5;  // UBOs
-		DPSZs.texturesInPool      = 8;  // Textures
+		DPSZs.texturesInPool      = 9;  // Textures
 		DPSZs.setsInPool          = 5;  // DS
 
 		// INIT TEXT
@@ -285,7 +287,8 @@ protected:
 		DS_global.init(this, &DSL_global, {});
 
 		std::vector<VkDescriptorImageInfo> tex_mountain = {
-			tex_mountain_baseColor.getViewAndSampler()
+			tex_mountain_baseColor.getViewAndSampler(),
+			tex_mountain_normal.getViewAndSampler(),
 		};
 		DS_mountain.init(this, &DSL_mountain, tex_mountain);
 
@@ -341,6 +344,7 @@ protected:
 	{
 		// Cleanup textures
 		tex_mountain_baseColor.cleanup();
+		tex_mountain_normal.cleanup();
 
 		tex_drone_baseColor.cleanup();
 		tex_drone_roughness.cleanup();
@@ -545,7 +549,7 @@ protected:
 		setCameraMode(window); // set camera mode based on key presses
 
 		// proj
-		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 100.0f);
+		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 1000.0f);
 		proj[1][1] *= -1;  // Vulkan
 
 		glm::vec3 dronePos = global_pos_drone;
@@ -601,11 +605,13 @@ protected:
 		DS_global.map(currentImage, &GUBO, 0);
 
 		// UBO mountain
-		glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));  // scale terrain up
+		// model
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -250.0f, 0.0f))
+						* glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f));
 
 		UBO_mountain.mvpMat = proj * view * model;
 		UBO_mountain.mMat   = model;
-		UBO_mountain.nMat   = glm::transpose(glm::inverse(model));
+		UBO_mountain.nMat   = glm::inverse(glm::transpose(UBO_mountain.mMat));
 		DS_mountain.map(currentImage, &UBO_mountain, 0);
 
 		// UBO drone
@@ -617,21 +623,18 @@ protected:
 							 * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0))
 							 * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));  // Shrink drone;;
 
-
-
-
 		UBO_drone.mvpMat = proj * view * modelDrone;
 		UBO_drone.mMat = modelDrone;
-		UBO_drone.nMat = glm::transpose(glm::inverse(modelDrone));
+		UBO_drone.nMat = glm::inverse(glm::transpose(UBO_drone.mMat));
 		DS_drone.map(currentImage, &UBO_drone, 0);
 
-		// Sky Box UBO update
+		// SkyBox UBO
+		// model
 		glm::mat4 skyboxModel =
 			glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0)) *  // fix orientation
-			glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));                             // enlarge
+			glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));										 // enlarge
 
 		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view)) * skyboxModel;
-
 		DS_skyBox.map(currentImage, &UBO_skyBox, 0);
 	}
 
