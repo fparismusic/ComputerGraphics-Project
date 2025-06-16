@@ -1,0 +1,26 @@
+{
+  "assetfiles": [
+    {"id": "snowyMountain", "file": "assets/models/snowyMountain.obj", "format":"OBJ"},
+    {"id": "ring", "file": "assets/models/ring.gltf", "format":"GLTF"}
+  ],
+  "models": [
+    {"id": "m1", "VD": "VD_phong", "model": "assets/models/snowyMountain.obj", "format":"OBJ"},
+    {"id": "r1", "VD": "VD_phong", "model": "assets/models/ring.gltf", "format":"GLTF"}
+  ],
+  "textures": [
+    {"id": "mBase", "texture": "assets/textures/Map/Base_Color.jpg", "format": "C"},
+    {"id": "mNorm", "texture": "assets/textures/Map/Normal_Map.jpeg", "format": "D"},
+    {"id": "rBase", "texture": "assets/textures/Map/ring_baseColor.png", "format": "C"},
+    {"id": "rNorm", "texture": "assets/textures/Map/ring_clearcoat.png", "format": "D"}
+  ],
+  "instances": [
+    {"technique": "Phong", "elements": [
+      {"id": "m1",  "model": "m1",   "texture": ["mBase", "mNorm"],
+                "translate": [0, -250, 0],
+                "scale": [1000, 1000, 1000]},
+      {"id": "r1",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [0, -130, 0],
+                "scale": [2, 2, 2]}
+    ]}
+  ]
+}
