@@ -32,13 +32,13 @@ protected:
 	TextMaker menuTxt;
 
 	// Camera controls
-	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);;
+	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
 	float CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
 	bool seenCenter   = true;
 	bool seenFollow   = false;
 	bool seenDrone    = false;
-	glm::vec3 global_pos_drone = glm::vec3(-500.0f, -242.0f, 0.0f);
+	glm::vec3 global_pos_drone = glm::vec3(-500.0f, 55.0f, 0.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 	const float deltaHeight = 4.0f;
 
@@ -87,7 +87,6 @@ protected:
 
 	// --- Uniform Buffers ---
 	UniformBufferObject
-		UBO_mountain,
 		UBO_drone,
 		ubos{};
 
@@ -264,9 +263,17 @@ protected:
 		tex_skyBox.init(this, "assets/textures/Sky_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 
 		// Number of UBO and textures that we will use
-		DPSZs.uniformBlocksInPool = 10;  // UBOs
-		DPSZs.texturesInPool      = 10;  // Textures
-		DPSZs.setsInPool          = 10;  // DS
+		DPSZs.uniformBlocksInPool = 1*10 +  // Rings
+									1*4  +  // Mountain
+									1*1	 +  // Drone
+									1*1	 +  // SkyBox
+									1*1;	// GUBO
+		DPSZs.texturesInPool      = 2*10 +  // Rings
+									2*4	 +  // Mountain
+									4*1	 +  // Drone
+									1*1  +  // SkyBox
+									1*1;	// Fonts
+		DPSZs.setsInPool          = 3;		// DS
 
 		std::cout << "\nLoading the scene\n\n";
 		if(SC.init(this, /*Npasses*/1, VDRs, PRs, "assets/models/scene.json") != 0) {
