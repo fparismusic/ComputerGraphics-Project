@@ -33,7 +33,8 @@ void main() {
     // Computing a fog factor that increases near the horizon
     float fogStart = 0.50;   // v-coordinate where fog starts
     float fogEnd   = 0.55;   // v-coordinate where fog is fully horizonColor
-    float fogFactor = smoothstep(fogStart, fogEnd, fragTexCoord.y);
+    float t = smoothstep(fogStart, fogEnd, fragTexCoord.y);
+    float fogFactor = pow(t, 3.0); // Smooth transition for fog effect
 
     // Define a horizon tint using scene light
     vec3 horizonColor = gubo.lightColor * gubo.lightIntensity;
