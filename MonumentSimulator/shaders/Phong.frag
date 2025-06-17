@@ -6,14 +6,14 @@
 // set 1, binding 1: sampler2D della baseColor della montagna
 
 layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
-    // NOTE: every vec3 is 16 byte in std140, so we add padding
-    vec3 cameraPos;          // position of the camera (world‐space)
-    vec3 lightDir;           // light direction (world‐space, directed to the mesh)
-    vec3 lightColor;         // light color/intensity
+        vec3 cameraPos;
+        vec3 lightDir;
+        vec3 lightColor;
+        float lightIntensity;
 } gubo;
 
 layout(set = 1, binding = 1) uniform sampler2D texBaseColor;
-layout(set = 1, binding = 2) uniform sampler2D texNormal;
+layout(set = 1, binding = 2) uniform sampler2D texExtra;
 
 layout(location = 0) in vec3 fragPos;
 layout(location = 1) in vec2 fragUV;
@@ -22,6 +22,28 @@ layout(location = 2) in vec3 fragNormal;
 layout(location = 0) out vec4 outColor;
 
 void main() {
+    // Albedo
     vec3 albedo = texture(texBaseColor, fragUV).rgb;
-    outColor = vec4(albedo, 1.0);
+
+    // Normal map in world‑space [-1,1] -> mountain normal
+    vec3 n_world = normalize(texture(texExtra, fragUV).xyz * 2.0 - 1.0);
+
+    // L=light V=view
+    vec3 L = normalize(gubo.lightDir);
+    vec3 V = normalize(gubo.cameraPos - fragPos);
+
+    // Diffuse
+    float NdotL = max(dot(n_world, L), 0.0);
+
+    // Blinn-Phong specular
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(n_world, H), 0.0), 8.0);
+
+    // Components
+    vec3 ambient  =  albedo; // not so much correct, but works for now
+    vec3 diffuse = NdotL * albedo * gubo.lightColor * gubo.lightIntensity;
+    vec3 specular = spec * gubo.lightColor * gubo.lightIntensity;
+
+    vec3 col = ambient + diffuse + specular;
+    outColor = vec4(col, 1.0);
 }

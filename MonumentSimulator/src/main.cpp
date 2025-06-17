@@ -38,13 +38,9 @@ protected:
 	bool seenCenter   = true;
 	bool seenFollow   = false;
 	bool seenDrone    = false;
-	glm::vec3 global_pos_drone = glm::vec3(-500.0f, 55.0f, 0.0f);
+	glm::vec3 global_pos_drone = glm::vec3(-500.0f, 155.0f, 0.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 	const float deltaHeight = 4.0f;
-
-	// Speed controls
-	const float ROT_SPEED  = glm::radians(120.0f);
-	const float MOVE_SPEED = 30.0f;
 
 	// Time
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
@@ -619,6 +615,7 @@ protected:
 		GUBO.proj = proj;
 		GUBO.view = view;
 		GUBO.cameraPos = CamPos;
+		GUBO.lightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)); // high sun in the sky
 		GUBO.time = totalElapsedTime;
 		updateGlobalUBO(GUBO, totalElapsedTime);
 		DS_global.map(currentImage, &GUBO, 0);
@@ -635,14 +632,6 @@ protected:
 			SC.TI[0].I[instanceId].DS[0][0]->map(currentImage, &GUBO, 0); // Set 0
 			SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 		}
-		/* model
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -250.0f, 0.0f))
-						* glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f));
-
-		UBO_mountain.mvpMat = proj * view * model;
-		UBO_mountain.mMat   = model;
-		UBO_mountain.nMat   = glm::inverse(glm::transpose(UBO_mountain.mMat));
-		DS_mountain.map(currentImage, &UBO_mountain, 0);*/
 
 		// UBO drone
 		// model
@@ -717,9 +706,9 @@ protected:
 	    if(glfwGetKey(w, GLFW_KEY_F))    global_pos_drone -= MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
 	}
 
-	const glm::vec3 dawnColor    = glm::vec3(0.8f, 0.4f, 0.2f);
-	const glm::vec3 noonColor    = glm::vec3(1.0f, 1.0f, 0.9f);
-	const glm::vec3 sunsetColor  = glm::vec3(0.9f, 0.3f, 0.1f);
+	const glm::vec3 dawnColor = glm::vec3(1.0f, 0.45f, 0.2f);
+	const glm::vec3 noonColor = glm::vec3(1.0f, 1.0f, 0.95f);
+	const glm::vec3 sunsetColor = glm::vec3(1.0f, 0.2f, 0.1f);
 
 	void updateGlobalUBO(GlobalUniformBufferObject& gubo, float elapsedTime)
 	{
@@ -732,24 +721,19 @@ protected:
 		glm::vec3 lightColor;
 		if (t < 60.0f) {
 			float f = glm::smoothstep(0.0f, 60.0f, t);
-			lightColor = glm::mix(dawnColor, noonColor, f);
+			gubo.lightColor = glm::mix(dawnColor, noonColor, f);
+			gubo.lightIntensity = 0.8f; // light intensity
 		}
 		else if (t < 120.0f) {
 			float f = glm::smoothstep(60.0f, 120.0f, t);
-			lightColor = glm::mix(noonColor, sunsetColor, f);
+			gubo.lightColor = glm::mix(noonColor, sunsetColor, f);
+			gubo.lightIntensity = 1.0f; // light intensity
 		}
 		else {
 			float f = glm::smoothstep(120.0f, 180.0f, t);
-			lightColor = glm::mix(sunsetColor, dawnColor, f);
+			gubo.lightColor = glm::mix(sunsetColor, dawnColor, f);
+			gubo.lightIntensity = 0.8f; // light intensity
 		}
-		gubo.lightColor = lightColor;
-
-		// Sun angle and direction
-		float angle = (t / 180.0f) * glm::two_pi<float>();  // 0→2π
-		glm::vec3 sunDir = glm::normalize(glm::vec3(cos(angle), sin(angle), 0.3f));
-		gubo.lightDir = sunDir;
-
-		gubo.lightIntensity = glm::clamp(glm::dot(sunDir, glm::vec3(0.0f, 1.0f, 0.0f)), 0.3f, 1.0f);
 	};
 };
 //-----------------------------------------------------------------------------------------------------
