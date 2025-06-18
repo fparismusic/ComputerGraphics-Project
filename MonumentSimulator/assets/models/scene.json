@@ -1,17 +1,25 @@
 {
   "assetfiles": [
     {"id": "snowyMountain", "file": "assets/models/snowyMountain.obj", "format":"OBJ"},
-    {"id": "ring", "file": "assets/models/ring.gltf", "format":"GLTF"}
+    {"id": "ring", "file": "assets/models/ring.gltf", "format":"GLTF"},
+    {"id": "start", "file": "assets/models/start-station.gltf", "format":"GLTF"}
   ],
   "models": [
     {"id": "m1", "VD": "VD_phong", "model": "assets/models/snowyMountain.obj", "format":"OBJ"},
-    {"id": "r1", "VD": "VD_phong", "model": "assets/models/ring.gltf", "format":"GLTF"}
+    {"id": "r1", "VD": "VD_phong", "model": "assets/models/ring.gltf", "format":"GLTF"},
+    {"id": "s", "VD": "VD_pbr", "model": "assets/models/start-station.gltf", "format":"GLTF"}
   ],
   "textures": [
     {"id": "mBase", "texture": "assets/textures/Map/Base_Color.jpg", "format": "C"},
     {"id": "mNorm", "texture": "assets/textures/Map/Normal_Map.jpeg", "format": "D"},
+
     {"id": "rBase", "texture": "assets/textures/Map/ring_baseColor.png", "format": "C"},
-    {"id": "rNorm", "texture": "assets/textures/Map/ring_clearcoat.png", "format": "D"}
+    {"id": "rNorm", "texture": "assets/textures/Map/ring_clearcoat.png", "format": "D"},
+
+    {"id": "sBase", "texture": "assets/textures/Map/station_baseColor.png", "format": "C"},
+    {"id": "sMR", "texture": "assets/textures/Map/station_metallicRoughness.png", "format": "D"},
+    {"id": "sEmissive", "texture": "assets/textures/Map/station_emissive.png", "format": "C"},
+    {"id": "sNorm", "texture": "assets/textures/Map/station_normal.png", "format": "D"}
   ],
   "instances": [
     {"technique": "Phong", "elements": [
@@ -71,6 +79,12 @@
                 "translate": [90, 400, 0],
                 "eulerAngles": [-90, 0, 0],
                 "scale": [2, 2, 2]}
+    ]},
+    {"technique": "PBR", "elements": [
+      {"id": "start-station",  "model": "s",   "texture": ["sBase", "sMR", "sEmissive", "sNorm"],
+        "translate": [-1000, 150, 100],
+        "eulerAngles": [-90, 90, 0],
+        "scale": [2, 2, 2]}
     ]}
   ]
 }

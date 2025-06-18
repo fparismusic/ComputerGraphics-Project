@@ -39,14 +39,14 @@ protected:
 	bool seenCenter   = true;
 	bool seenFollow   = false;
 	bool seenDrone    = false;
-	glm::vec3 global_pos_drone = glm::vec3(-1200.0f, 180.0f, 0.0f);
+	glm::vec3 global_pos_drone = glm::vec3(-1000.0f, 250.0f, 130.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 	const float deltaHeight = 4.0f;
 
 	const float minX = -3000.0f;
 	const float maxX =  1000.0f;
-	const float minY =  180.0f;
-	const float maxY =  450.0f;
+	const float minY =  250.0f;
+	const float maxY =  500.0f;
 	const float minZ = -3000.0f;
 	const float maxZ =  1000.0f;
 
@@ -92,6 +92,7 @@ protected:
 	// --- Uniform Buffers ---
 	UniformBufferObject
 		UBO_drone,
+		ubosStart{},
 		ubos{};
 
 	SkyBoxUniformBufferObject UBO_skyBox;
@@ -213,8 +214,9 @@ protected:
 			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(skyBoxVertex, UV), sizeof(glm::vec2), UV}
 		});
 
-		VDRs.resize(1);
+		VDRs.resize(2);
 		VDRs[0].init("VD_phong",   &VD_phong);
+		VDRs[1].init("VD_pbr",   &VD_pbr);
 
 		// Render pass
 		RP.init(this);
@@ -240,16 +242,27 @@ protected:
 		P_skyBox.setCullMode(VK_CULL_MODE_NONE);
 		P_skyBox.setPolygonMode(VK_POLYGON_MODE_FILL);
 
-		PRs.resize(1);
+		PRs.resize(2);
 		PRs[0].init("Phong", {
 							 {&P_phong, {//Pipeline and DSL for the first pass
 								 /*DSL_global*/{},
-								 /*DSL_mountain*/{
+								 /*DSL_map*/{
 										/*t0*/{true,  0, {}},// index 0 of the "texture" field in the json file
 										/*t1*/{true,  1, {}} // index 1 of the "texture" field in the json file
 									 }
 									}}
-							  }, /*TotalNtextures*/2, &VD_phong);
+							 }, /*TotalNtextures*/2, &VD_phong),
+		PRs[1].init("PBR", {
+								{&P_pbr, {//Pipeline and DSL for the first pass
+							 		/*DSLglobal*/{},
+									/*DSLlocalPBR*/{
+										/*t0*/{true,  0, {}},// index 0 of the "texture" field in the json file
+										/*t1*/{true,  1, {}},// index 1 of the "texture" field in the json file
+										/*t2*/{true,  2, {}},// index 2 of the "texture" field in the json file
+										/*t3*/{true,  3, {}}// index 3 of the "texture" field in the json file
+										}
+										}}
+								}, /*TotalNtextures*/4, &VD_pbr);
 		// Create models
 		// The second parameter is the pointer to the vertex definition for this model
 		// The third parameter is the file name
@@ -269,11 +282,13 @@ protected:
 		// Number of UBO and textures that we will use
 		DPSZs.uniformBlocksInPool = 1*10 +  // Rings
 									1*4  +  // Mountain
+									1*1	 +  // Station
 									1*1	 +  // Drone
 									1*1	 +  // SkyBox
 									1*1;	// GUBO
 		DPSZs.texturesInPool      = 2*10 +  // Rings
 									2*4	 +  // Mountain
+									1*4  +  // Station
 									4*1	 +  // Drone
 									1*1  +  // SkyBox
 									1*1;	// Fonts
@@ -429,25 +444,23 @@ protected:
 
 		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter binds the data set
 		P_phong.bind(commandBuffer);
+
 		// For a Dataset object, this command binds the corresponing dataset to the command buffer and pipeline passed in its first and second parameters.
 		// The third parameter is the number of the set being bound
 		// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
 		// This is done automatically in file Starter.hpp, however the command here needs also the index of the current image in the swap chain, passed in its last parameter binds the model
 		DS_global.bind(commandBuffer, P_phong, 0, currentImage);
-		SC.populateCommandBuffer(commandBuffer, 0, currentImage);
-		//DS_mountain.bind(commandBuffer, P_phong, 1, currentImage);
 
 		// For a Model object, this command binds the corresponing index and vertex buffer
 		// to the command buffer passed in its parameter
 		// record the drawing command in the command buffer
-		//M_mountain.bind(commandBuffer);
-		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_mountain.indices.size()), 1, 0, 0, 0);
-
 		P_pbr.bind(commandBuffer);
 		DS_global.bind(commandBuffer, P_pbr, 0, currentImage);
 		DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
 		M_drone.bind(commandBuffer);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0);
+
+		SC.populateCommandBuffer(commandBuffer, 0, currentImage);
 
 		// P_skyBox pipeline
 		P_skyBox.bind(commandBuffer);
@@ -629,9 +642,8 @@ protected:
 		updateGlobalUBO(GUBO, totalElapsedTime);
 		DS_global.map(currentImage, &GUBO, 0);
 
-		// UBO mountain
+		// UBOs mountain
 		int instanceId;
-		// normal objects
 
 		for(instanceId = 0; instanceId < SC.TI[0].InstanceCount; instanceId++) {
 			ubos.mMat   = SC.TI[0].I[instanceId].Wm;
@@ -640,6 +652,16 @@ protected:
 
 			SC.TI[0].I[instanceId].DS[0][0]->map(currentImage, &GUBO, 0); // Set 0
 			SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+		}
+
+		// UBOs station
+		for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
+			ubosStart.mMat   = SC.TI[1].I[instanceId].Wm;
+			ubosStart.mvpMat = proj * view * ubosStart.mMat;
+			ubosStart.nMat   = glm::inverse(glm::transpose(ubosStart.mMat));
+
+			SC.TI[1].I[instanceId].DS[0][0]->map(currentImage, &GUBO, 0); // Set 0
+			SC.TI[1].I[instanceId].DS[0][1]->map(currentImage, &ubosStart, 0);  // Set 1
 		}
 
 		// UBO drone
