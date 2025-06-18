@@ -35,12 +35,20 @@ protected:
 	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
 	float CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
+	// --- Drone parameters ---
 	bool seenCenter   = true;
 	bool seenFollow   = false;
 	bool seenDrone    = false;
 	glm::vec3 global_pos_drone = glm::vec3(-500.0f, 155.0f, 0.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 	const float deltaHeight = 4.0f;
+
+	const float minX = -1500.0f;
+	const float maxX =  500.0f;
+	const float minY =  152.0f;
+	const float maxY =  320.0f;
+	const float minZ = -1500.0f;
+	const float maxZ =  500.0f;
 
 	// Time
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
@@ -563,6 +571,8 @@ protected:
 		getDroneInput(window, deltaT); // update drone position and orientation
 		setCameraMode(window); // set camera mode based on key presses
 
+
+
 		// proj
 		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 1000.0f);
 		proj[1][1] *= -1;  // Vulkan
@@ -571,7 +581,7 @@ protected:
 
 		// view
 		glm::mat4 view;
-		const float DRONE_SCALE = 0.05f;  // or whatever your drone scale is
+		const float DRONE_SCALE = 0.065f;  // or whatever your drone scale is
 
 		if (seenCenter) {
 			glm::vec3 camP = dronePos + glm::vec3(0, 0, 4.0f * DRONE_SCALE);  // adjust based on how far you want to be
@@ -704,6 +714,12 @@ protected:
 	    if(glfwGetKey(w, GLFW_KEY_A))    global_pos_drone -= MOVE_SPEED * right   * deltaT;
 	    if(glfwGetKey(w, GLFW_KEY_R))    global_pos_drone += MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
 	    if(glfwGetKey(w, GLFW_KEY_F))    global_pos_drone -= MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
+
+		// Clamp the drone position to a defined range
+		global_pos_drone.x = glm::clamp(global_pos_drone.x, minX, maxX);
+		global_pos_drone.y = glm::clamp(global_pos_drone.y, minY, maxY);
+		global_pos_drone.z = glm::clamp(global_pos_drone.z, minZ, maxZ);
+
 	}
 
 	const glm::vec3 dawnColor = glm::vec3(1.0f, 0.45f, 0.2f);

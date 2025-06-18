@@ -41,8 +41,8 @@ void main() {
 
     // Components
     vec3 ambient  =  albedo; // not so much correct, but works for now
-    vec3 diffuse = NdotL * albedo * gubo.lightColor * gubo.lightIntensity;
-    vec3 specular = spec * gubo.lightColor * gubo.lightIntensity;
+    vec3 diffuse = NdotL * albedo * gubo.lightColor.rgb * gubo.lightIntensity;
+    vec3 specular = spec * gubo.lightColor.rgb * gubo.lightIntensity;
 
     vec3 col = ambient + diffuse + specular;
     outColor = vec4(col, 1.0);
