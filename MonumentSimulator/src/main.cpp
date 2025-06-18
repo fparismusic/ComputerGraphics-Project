@@ -39,16 +39,16 @@ protected:
 	bool seenCenter   = true;
 	bool seenFollow   = false;
 	bool seenDrone    = false;
-	glm::vec3 global_pos_drone = glm::vec3(-500.0f, 155.0f, 0.0f);
+	glm::vec3 global_pos_drone = glm::vec3(-1200.0f, 180.0f, 0.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 	const float deltaHeight = 4.0f;
 
-	const float minX = -1500.0f;
-	const float maxX =  500.0f;
-	const float minY =  152.0f;
-	const float maxY =  320.0f;
-	const float minZ = -1500.0f;
-	const float maxZ =  500.0f;
+	const float minX = -3000.0f;
+	const float maxX =  1000.0f;
+	const float minY =  180.0f;
+	const float maxY =  450.0f;
+	const float minZ = -3000.0f;
+	const float maxZ =  1000.0f;
 
 	// Time
 	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
@@ -572,10 +572,9 @@ protected:
 		setCameraMode(window); // set camera mode based on key presses
 
 
+		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
+		proj[1][1] *= -1;
 
-		// proj
-		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 1000.0f);
-		proj[1][1] *= -1;  // Vulkan
 
 		glm::vec3 dronePos = global_pos_drone;
 
@@ -694,7 +693,7 @@ protected:
 
 	void getDroneInput(GLFWwindow* w, float deltaT) {
 	    const float ROT_SPEED  = glm::radians(45.0f);
-	    const float MOVE_SPEED = 30.0f;
+	    const float MOVE_SPEED = 50.0f;
 
 	    // rotations
 	    if(glfwGetKey(w, GLFW_KEY_LEFT))  droneYaw   += deltaT * ROT_SPEED;
