@@ -12,6 +12,67 @@
 using namespace std;
 using namespace glm;
 
+
+
+
+
+
+void loadMountainPoints(std::vector<glm::vec3>& points) {
+	std::ifstream objFile("assets/models/snowyMountain.obj");
+	if (!objFile.is_open()) {
+		std::cerr << "Error loading snowyMountain.obj" << std::endl;
+		return;
+	}
+
+	std::vector<glm::vec3> rawVertices;
+	std::string line;
+	while (std::getline(objFile, line)) {
+		if (line.substr(0, 2) == "v ") {
+			std::istringstream iss(line.substr(2));
+			glm::vec3 v;
+			iss >> v.x >> v.y >> v.z;
+			rawVertices.push_back(v);
+		}
+	}
+
+	objFile.close();
+
+	// Define transforms for the 4 mountains
+	std::vector<std::pair<glm::vec3, float>> transforms = {
+		{{0, 150, 0}, 0.0f},
+		{{-2000, 150, 0}, 180.0f},
+		{{-2000, 150, -2000}, 180.0f},
+		{{0, 150, -2000}, 0.0f}
+	};
+
+	float scale = 2000.0f;
+
+	for (const auto& [pos, yawDeg] : transforms) {
+		float yawRad = glm::radians(yawDeg);
+		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), yawRad, glm::vec3(0, 1, 0));
+		for (const auto& v : rawVertices) {
+			glm::vec3 scaled = v * scale;
+			glm::vec3 rotated = glm::vec3(rotation * glm::vec4(scaled, 1.0f));
+			glm::vec3 transformed = rotated + pos;
+			points.push_back(transformed);
+		}
+	}
+
+
+	std::cout << "Loaded " << points.size() << " mountain vertices.\n";
+}
+
+
+bool isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mountainPoints, float threshold = 5.0f) {
+	for (const auto& pt : mountainPoints) {
+		if (glm::distance(pos, pt) < threshold)
+			return true;
+	}
+	return false;
+}
+
+
+
 // --- Game States ---
 enum class AppState {
 	Menu,
@@ -101,6 +162,7 @@ protected:
 	Scene SC;
 	std::vector<VertexDescriptorRef>  VDRs;
 	std::vector<TechniqueRef> PRs;
+	std::vector<glm::vec3> mountainPoints;
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -220,6 +282,8 @@ protected:
 
 		// Render pass
 		RP.init(this);
+		loadMountainPoints(mountainPoints);
+
 		// sets the background
 		RP.properties[0].clearValue = {0.204f, 0.710f, 0.212f, 0.8f};
 
@@ -726,15 +790,35 @@ protected:
 	    if(glfwGetKey(w, GLFW_KEY_E))     droneRoll  += deltaT * ROT_SPEED;
 
 		// traslations
-	    glm::mat4 R_yaw = glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0));
-	    glm::vec3 forward = glm::vec3(R_yaw * glm::vec4(0,0,-1,0));
-	    glm::vec3 right   = glm::vec3(R_yaw * glm::vec4(1,0, 0,0));
-	    if(glfwGetKey(w, GLFW_KEY_W))    global_pos_drone += MOVE_SPEED * forward * deltaT;
-	    if(glfwGetKey(w, GLFW_KEY_S))    global_pos_drone -= MOVE_SPEED * forward * deltaT;
-	    if(glfwGetKey(w, GLFW_KEY_D))    global_pos_drone += MOVE_SPEED * right   * deltaT;
-	    if(glfwGetKey(w, GLFW_KEY_A))    global_pos_drone -= MOVE_SPEED * right   * deltaT;
-	    if(glfwGetKey(w, GLFW_KEY_R))    global_pos_drone += MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
-	    if(glfwGetKey(w, GLFW_KEY_F))    global_pos_drone -= MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
+		// Movement
+		glm::mat4 R_yaw = glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0));
+		glm::vec3 forward = glm::vec3(R_yaw * glm::vec4(0,0,-1,0));
+		glm::vec3 right   = glm::vec3(R_yaw * glm::vec4(1,0, 0,0));
+
+		if (glfwGetKey(w, GLFW_KEY_W)) {
+			glm::vec3 attempt = global_pos_drone + MOVE_SPEED * forward * deltaT;
+			if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
+		}
+		if (glfwGetKey(w, GLFW_KEY_S)) {
+			glm::vec3 attempt = global_pos_drone - MOVE_SPEED * forward * deltaT;
+			if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
+		}
+		if (glfwGetKey(w, GLFW_KEY_D)) {
+			glm::vec3 attempt = global_pos_drone + MOVE_SPEED * right * deltaT;
+			if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
+		}
+		if (glfwGetKey(w, GLFW_KEY_A)) {
+			glm::vec3 attempt = global_pos_drone - MOVE_SPEED * right * deltaT;
+			if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
+		}
+		if (glfwGetKey(w, GLFW_KEY_R)) {
+			glm::vec3 attempt = global_pos_drone + MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
+			if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
+		}
+		if (glfwGetKey(w, GLFW_KEY_F)) {
+			glm::vec3 attempt = global_pos_drone - MOVE_SPEED * glm::vec3(0,1,0) * deltaT;
+			if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
+		}
 
 		// Clamp the drone position to a defined range
 		global_pos_drone.x = glm::clamp(global_pos_drone.x, minX, maxX);
