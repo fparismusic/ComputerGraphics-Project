@@ -15,8 +15,6 @@ using namespace glm;
 
 
 
-
-
 void loadMountainPoints(std::vector<glm::vec3>& points) {
 	std::ifstream objFile("assets/models/snowyMountain.obj");
 	if (!objFile.is_open()) {
