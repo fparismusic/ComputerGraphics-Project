@@ -77,6 +77,21 @@ enum class AppState {
 	Playing
 };
 
+
+void checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius = 10.0f) {
+	for (size_t i = 0; i < rings.size(); ++i) {
+		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
+			passed[i] = true;
+			std::cout << "Great, Ring " << (i + 1) << " passed!" << std::endl;
+		}
+	}
+
+	// Check for game completion
+	if (std::all_of(passed.begin(), passed.end(), [](bool b) { return b; })) {
+		std::cout << "🎉 All rings passed! Game complete!" << std::endl;
+	}
+}
+
 // MonumentSimulator: subclass of BaseProject
 class MonumentSimulator : public BaseProject {
 protected:
@@ -161,6 +176,24 @@ protected:
 	std::vector<VertexDescriptorRef>  VDRs;
 	std::vector<TechniqueRef> PRs;
 	std::vector<glm::vec3> mountainPoints;
+
+
+	std::vector<glm::vec3> ringPositions = {
+		{60.753, 410.153, 201.635},
+		{329.919, 299.502, -141.467},
+		{161.293, 254.75, -501.018},
+		{329.234, 250, -1480.34},
+		{86.0901, 413.327, -1801.31},
+		{-229.292, 263.179, -1885.49},
+		{-1456.62, 256.705, -1772.74},
+		{-2084.15, 403.717, -2197.66},
+		{-2241.4, 250, -1323.08},
+		{-2088.51, 416.687, -195.252}
+	};
+
+	// Flags to track which rings were passed
+	std::vector<bool> ringPassed = std::vector<bool>(10, false);
+
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -822,6 +855,15 @@ protected:
 		global_pos_drone.x = glm::clamp(global_pos_drone.x, minX, maxX);
 		global_pos_drone.y = glm::clamp(global_pos_drone.y, minY, maxY);
 		global_pos_drone.z = glm::clamp(global_pos_drone.z, minZ, maxZ);
+
+		checkRingPassage(global_pos_drone, ringPositions, ringPassed);
+
+		if (glfwGetKey(w, GLFW_KEY_P) == GLFW_PRESS) {
+			std::cout << "Drone Position: "
+					  << global_pos_drone.x << ", "
+					  << global_pos_drone.y << ", "
+					  << global_pos_drone.z << std::endl;
+		}
 
 	}
 
