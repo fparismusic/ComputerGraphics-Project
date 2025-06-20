@@ -491,6 +491,7 @@ protected:
 
 		// Cleanup descriptor set layouts
 		DSL_global.cleanup();
+		DSL_map.cleanup();
 		DSL_drone.cleanup();
 		DSL_skyBox.cleanup();
 
