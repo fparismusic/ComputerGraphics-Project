@@ -12,9 +12,8 @@
 using namespace std;
 using namespace glm;
 
-
-
-
+//-----------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------
 void loadMountainPoints(std::vector<glm::vec3>& points) {
 	std::ifstream objFile("assets/models/snowyMountain.obj");
 	if (!objFile.is_open()) {
@@ -55,8 +54,6 @@ void loadMountainPoints(std::vector<glm::vec3>& points) {
 			points.push_back(transformed);
 		}
 	}
-
-
 	std::cout << "Loaded " << points.size() << " mountain vertices.\n";
 }
 
@@ -68,15 +65,6 @@ bool isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mo
 	}
 	return false;
 }
-
-
-
-// --- Game States ---
-enum class AppState {
-	Menu,
-	Playing
-};
-
 
 void checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius = 10.0f) {
 	for (size_t i = 0; i < rings.size(); ++i) {
@@ -91,6 +79,13 @@ void checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::ve
 		std::cout << "🎉 All rings passed! Game complete!" << std::endl;
 	}
 }
+//-----------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------
+// --- Game States ---
+enum class AppState {
+	Menu,
+	Playing
+};
 
 // MonumentSimulator: subclass of BaseProject
 class MonumentSimulator : public BaseProject {
@@ -115,7 +110,6 @@ protected:
 	bool seenDrone    = false;
 	glm::vec3 global_pos_drone = glm::vec3(-1000.0f, 250.0f, 130.0f);
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
-	const float deltaHeight = 4.0f;
 
 	const float minX = -3000.0f;
 	const float maxX =  1000.0f;
@@ -692,44 +686,33 @@ protected:
 		const float DRONE_SCALE = 0.065f;  // or whatever your drone scale is
 
 		if (seenCenter) {
-			glm::vec3 camP = dronePos + glm::vec3(0, 0, 4.0f * DRONE_SCALE);  // adjust based on how far you want to be
-			view = LookAtMat(camP, dronePos, 0.0f);
+			glm::vec3 offset = glm::vec3(0, 0, 4.0f * DRONE_SCALE); // offset from the drone position
+			glm::mat4 totalRotation = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0, 1, 0)) *
+									  glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1, 0, 0)) *
+									  glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0, 0, 1));
+
+			// CamPos is the position of the camera, which is offset from the drone position
+			glm::vec3 rotated_offset = glm::vec3(totalRotation * glm::vec4(offset, 0.0f));
+			glm::vec3 camP = dronePos + rotated_offset;
+			// The up vector is also rotated to match the drone's orientation
+			glm::vec3 upVector = glm::normalize(glm::vec3(totalRotation * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f)));
+
+			view = glm::lookAt(camP, dronePos, upVector);
 		}
 		else if (seenFollow) {
-			glm::vec3 camP = dronePos + glm::vec3(0, 2.0f * DRONE_SCALE, 2.0f * DRONE_SCALE);  // follow from above/behind
+			glm::vec3 camP = dronePos + glm::vec3(0, 4.0f * DRONE_SCALE, 1.5f * DRONE_SCALE);  // follow from above/behind
 			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
 		}
 		else if (seenDrone) {
 			glm::vec3 camP = dronePos + glm::vec3(glm::rotate(
-				glm::mat4(1.0f),
-				droneYaw,
-				glm::vec3(0, 1, 0)) * glm::vec4(0.0f, 0.5f * DRONE_SCALE, 0.0f, 1.0f));
+				glm::mat4(1.0f), droneYaw,
+				glm::vec3(0, 1, 0)) * glm::vec4(0.0f, 1.5f * DRONE_SCALE, 0.0f, 1.0f));
 			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
 		}
 
 
 		CamPos = glm::vec3(glm::inverse(view)[3]);
 
-/*		CamYaw   = CamYaw   - ROT_SPEED * deltaT * r.y; // camera rotation around Y axis
-		CamPitch = CamPitch - ROT_SPEED * deltaT * r.x; // camera rotation around X axis
-		CamPitch = CamPitch < glm::radians(-90.0f) ? glm::radians(-90.0f) :
-				  (CamPitch > glm::radians( 90.0f) ? glm::radians( 90.0f) : CamPitch); //clamp
-		CamRoll = CamRoll - ROT_SPEED * deltaT * r.z; // camera rotation around Z axis
-
-		// Complete Rotation: roll (Z) → pitch (X) → yaw (Y)
-		glm::mat4 R_yaw   = glm::rotate(glm::mat4(1.0f), CamYaw,   glm::vec3(0.0f, 1.0f, 0.0f));
-		glm::mat4 R_pitch = glm::rotate(glm::mat4(1.0f), CamPitch, glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 R_roll  = glm::rotate(glm::mat4(1.0f), CamRoll,  glm::vec3(0.0f, 0.0f, 1.0f));
-		glm::mat4 R = R_yaw * R_pitch * R_roll;
-		glm::vec3 forward = glm::normalize(glm::vec3(R * glm::vec4(0, 0, -1, 0)));
-		glm::vec3 right   = glm::normalize(glm::vec3(R * glm::vec4(1, 0,  0, 0)));
-		glm::vec3 up      = glm::normalize(glm::vec3(R * glm::vec4(0, 1,  0, 0)));
-
-		// Position of the camera in the world
-		CamPos += MOVE_SPEED * m.y * forward * deltaT;  // W/S
-		CamPos += MOVE_SPEED * m.x * right   * deltaT;  // A/D
-		CamPos += MOVE_SPEED * m.z * up      * deltaT;  // R/F
-*/
 		GUBO.proj = proj;
 		GUBO.view = view;
 		GUBO.cameraPos = CamPos;
