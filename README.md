@@ -1,4 +1,4 @@
-# Or-Beat
+# DRONE-SIMULATOR
 
 ### Filippo Paris · Francesco Moretti · Moein Zadeh
 
