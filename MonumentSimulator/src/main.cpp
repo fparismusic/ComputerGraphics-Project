@@ -388,10 +388,10 @@ protected:
 		M_skyBox.init(this, &VD_skyBox, "assets/models/skybox.gltf", GLTF);
 
 		// Create HUD screens
-		float ndc_width  = 1024.0f / windowWidth * 2.0f;
-		float ndc_height = 1024.0f / windowHeight * 2.0f;
-		ndc_width  *= 0.7f;
-		ndc_height *= 0.7f;
+		float ndc_width  = 1472.0f / windowWidth * 2.0f;
+		float ndc_height = 832.0f / windowHeight * 2.0f;
+		ndc_width  *= 0.85f;
+		ndc_height *= 0.85f;
 		// Center the overlay in NDC coordinates
 		glm::vec2 anchor = glm::vec2(-ndc_width / 2.0f, -ndc_height / 2.0f);
 		for (int i = 0; i < 3; i++) {
@@ -419,8 +419,8 @@ protected:
 		tex_drone_normal.init(this,    "assets/textures/Drone/DefaultMaterial_normal.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
 
 		tex_overlay[0].init(this, "assets/textures/Menu/menu.png");
-		tex_overlay[1].init(this, "assets/textures/Menu/win.png");
-		tex_overlay[2].init(this, "assets/textures/Menu/lose.png");
+		tex_overlay[1].init(this, "assets/textures/Menu/win.jpg");
+		tex_overlay[2].init(this, "assets/textures/Menu/lose.jpg");
 
 		tex_skyBox.init(this, "assets/textures/Sky_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 
@@ -614,7 +614,7 @@ protected:
 				DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
 				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0);
 			}
-			menuTxt.print(-0.30f, 0.95f, "[ENTER] Start Simulation\n[H] Help and Controls\n[ESC] Exit\n",1,"CO",true,true,false,TAL_LEFT,TRH_LEFT,TRV_BOTTOM,{0.0f, 0.0f, 0.0f, 1.0f},{0.0f,0.0f,0.0f, 0.0f});
+			menuTxt.print(-0.85f, 0.7f, "[ENTER] Start Simulation\t   [H] Help and Controls\t   [ESC] Exit\t",1,"CO",true,true,false,TAL_LEFT,TRH_LEFT,TRV_BOTTOM,{0.0f, 0.0f, 0.0f, 1.0f},{0.0f,0.0f,0.0f, 0.0f});
 			menuTxt.updateCommandBuffer();
 			RP.end(commandBuffer);
 			return;
@@ -683,7 +683,7 @@ protected:
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 			}
 			else if (hPressed) {
-				menuTxt.print(-0.58f, 0.5f, "Final project of the Computer Graphics course\n\nPress C to close this text", 2, "CO", false, false, false, TAL_CENTER, TRH_LEFT, TRV_TOP, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f});
+				menuTxt.print(-0.6f, 0.75f, "Final project of the Computer Graphics course\nPress C to close this text", 2, "CO", false, false, false, TAL_CENTER, TRH_LEFT, TRV_TOP, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f});
 				menuTxt.updateCommandBuffer();
 			}
 			else if (cPressed) {
@@ -762,7 +762,7 @@ protected:
 			state = AppState::GameOver;
 		} else if (gameOver==-1.0f)
 		{
-			cout << "Game finished: LOSE...!\n";
+			cout << "Game finished: LOST...!\n";
 			UBO_overlay[0].visible = false;
 			UBO_overlay[1].visible = false;
 			UBO_overlay[2].visible = true;
@@ -805,10 +805,8 @@ protected:
 		getDroneInput(window, deltaT); // update drone position and orientation
 		setCameraMode(window); // set camera mode based on key presses
 
-
 		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
 		proj[1][1] *= -1;
-
 
 		glm::vec3 dronePos = global_pos_drone;
 
@@ -840,7 +838,6 @@ protected:
 				glm::vec3(0, 1, 0)) * glm::vec4(0.0f, 1.5f * DRONE_SCALE, 0.0f, 1.0f));
 			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
 		}
-
 
 		CamPos = glm::vec3(glm::inverse(view)[3]);
 
