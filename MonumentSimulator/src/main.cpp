@@ -66,7 +66,8 @@ bool isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mo
 	return false;
 }
 
-void checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius = 10.0f) {
+float checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius = 10.0f) {
+	float res = 0.0f;
 	for (size_t i = 0; i < rings.size(); ++i) {
 		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
 			passed[i] = true;
@@ -77,14 +78,17 @@ void checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::ve
 	// Check for game completion
 	if (std::all_of(passed.begin(), passed.end(), [](bool b) { return b; })) {
 		std::cout << "🎉 All rings passed! Game complete!" << std::endl;
+		res =  1.0f;
 	}
+	return res;
 }
 //-----------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------
 // --- Game States ---
 enum class AppState {
 	Menu,
-	Playing
+	Playing,
+	GameOver
 };
 
 // MonumentSimulator: subclass of BaseProject
@@ -93,12 +97,13 @@ protected:
 
 	// --- Menu fields ---
 	AppState state = AppState::Menu;
+	TextMaker menuTxt;
+	float gameOver = 0.0f;
+	bool showStartText = false;
+	bool showCommandsKeyboard = false;
 
 	// --- Window parameters ---
 	float Ar; // Aspect Ratio
-	bool showStartText = false;
-	bool showCommandsKeyboard = false;
-	TextMaker menuTxt;
 
 	// Camera controls
 	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
@@ -129,32 +134,37 @@ protected:
 	DescriptorSetLayout
 		DSL_map,
 		DSL_drone,
+		DSL_overlay,
 		DSL_skyBox,
 		DSL_global;
 
 	// --- Vertex Descriptors ---
-	VertexDescriptor VD_phong, VD_pbr, VD_skyBox;
+	VertexDescriptor VD_phong, VD_pbr, VD_overlay, VD_skyBox;
 
 	// --- Pipelines ---
 	Pipeline
 		P_phong,
 		P_pbr,
+		P_overlay,
 		P_skyBox;
 
 	// --- Model ---
 	Model
 		M_drone,
+		M_overlay[3],
 		M_skyBox;
 
 	// --- Textures ---
 	Texture
 		tex_drone_baseColor, tex_drone_normal, tex_drone_roughness, tex_drone_emissive,
+		tex_overlay[3],
 		tex_skyBox;
 
 	// --- Descriptor Sets ---
 	DescriptorSet
 		DS_drone,
 		DS_skyBox,
+		DS_overlay[3],
 		DS_global;
 
 	// --- Uniform Buffers ---
@@ -163,6 +173,7 @@ protected:
 		ubosStart{},
 		ubos{};
 
+	OverlayUniformBlock UBO_overlay[3];
 	SkyBoxUniformBufferObject UBO_skyBox;
 	GlobalUniformBufferObject GUBO;
 
@@ -254,6 +265,11 @@ protected:
 			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 		});
 
+		DSL_overlay.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(OverlayUniformBlock), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
+		});
+
 		DSL_skyBox.init(this, {
 				{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(SkyBoxUniformBufferObject), 1},
 				{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
@@ -294,6 +310,13 @@ protected:
 			{0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexTan, tangent), sizeof(vec4), TANGENT}
 		});
 
+		VD_overlay.init(this, {
+			{0, sizeof(VertexOverlay), VK_VERTEX_INPUT_RATE_VERTEX}
+		}, {
+			{0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexOverlay, pos), sizeof(glm::vec2), OTHER},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexOverlay, UV), sizeof(glm::vec2), UV}
+		});
+
 		VD_skyBox.init(this, {
 			{0, sizeof(skyBoxVertex), VK_VERTEX_INPUT_RATE_VERTEX}
 		}, {
@@ -310,7 +333,7 @@ protected:
 		loadMountainPoints(mountainPoints);
 
 		// sets the background
-		RP.properties[0].clearValue = {0.204f, 0.710f, 0.212f, 0.8f};
+		RP.properties[0].clearValue = {0.53f, 0.81f, 0.92f, 0.8f};
 
 		// Pipelines [Shader couples]
 		// The second parameter is the pointer to the vertex definition
@@ -325,6 +348,11 @@ protected:
 		P_pbr.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
 		P_pbr.setCullMode(VK_CULL_MODE_NONE);
 		P_pbr.setPolygonMode(VK_POLYGON_MODE_FILL);
+
+		P_overlay.init(this, &VD_overlay, "shaders/OverlayVert.vert.spv", "shaders/OverlayFrag.frag.spv", { &DSL_overlay });
+		P_overlay.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
+		P_overlay.setCullMode(VK_CULL_MODE_NONE);
+		P_overlay.setPolygonMode(VK_POLYGON_MODE_FILL);
 
 		P_skyBox.init(this, &VD_skyBox, "shaders/SkyBox.vert.spv", "shaders/Skybox.frag.spv", { &DSL_global, &DSL_skyBox });
 		P_skyBox.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -359,12 +387,40 @@ protected:
 		M_drone.init(this, &VD_pbr, "assets/models/drone.gltf", GLTF);
 		M_skyBox.init(this, &VD_skyBox, "assets/models/skybox.gltf", GLTF);
 
+		// Create HUD screens
+		float ndc_width  = 1024.0f / windowWidth * 2.0f;
+		float ndc_height = 1024.0f / windowHeight * 2.0f;
+		ndc_width  *= 0.7f;
+		ndc_height *= 0.7f;
+		// Center the overlay in NDC coordinates
+		glm::vec2 anchor = glm::vec2(-ndc_width / 2.0f, -ndc_height / 2.0f);
+		for (int i = 0; i < 3; i++) {
+			M_overlay[i].vertices.clear();
+			std::vector<VertexOverlay> tempVerts = {
+				{ glm::vec2(anchor.x, anchor.y), glm::vec2(0.0f, 0.0f) },
+				{ glm::vec2(anchor.x, anchor.y + ndc_height), glm::vec2(0.0f, 1.0f) },
+				{ glm::vec2(anchor.x + ndc_width, anchor.y), glm::vec2(1.0f, 0.0f) },
+				{ glm::vec2(anchor.x + ndc_width, anchor.y + ndc_height), glm::vec2(1.0f, 1.0f) },
+			};
+
+			// Copia binaria nei vertices
+			M_overlay[i].vertices.resize(sizeof(VertexOverlay) * tempVerts.size());
+			std::memcpy(M_overlay[i].vertices.data(), tempVerts.data(), M_overlay[i].vertices.size());
+
+			M_overlay[i].indices = { 0, 1, 2,    1, 2, 3 };
+			M_overlay[i].initMesh(this, &VD_overlay);
+		}
+
 		// Create the textures
 		// The second parameter is the file name
 		tex_drone_baseColor.init(this, "assets/textures/Drone/DefaultMaterial_baseColor.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 		tex_drone_roughness.init(this, "assets/textures/Drone/DefaultMaterial_metallicRoughness.png", VK_FORMAT_R8G8B8A8_SRGB, true);
 		tex_drone_emissive.init(this, "assets/textures/Drone/DefaultMaterial_emissive.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 		tex_drone_normal.init(this,    "assets/textures/Drone/DefaultMaterial_normal.jpeg", VK_FORMAT_R8G8B8A8_UNORM, true);
+
+		tex_overlay[0].init(this, "assets/textures/Menu/menu.png");
+		tex_overlay[1].init(this, "assets/textures/Menu/win.png");
+		tex_overlay[2].init(this, "assets/textures/Menu/lose.png");
 
 		tex_skyBox.init(this, "assets/textures/Sky_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 
@@ -373,15 +429,17 @@ protected:
 									1*4  +  // Mountain
 									1*1	 +  // Station
 									1*1	 +  // Drone
+									1*3	 +  // Menu
 									1*1	 +  // SkyBox
 									1*1;	// GUBO
 		DPSZs.texturesInPool      = 2*10 +  // Rings
 									2*4	 +  // Mountain
 									1*4  +  // Station
 									4*1	 +  // Drone
+									1*3  +  // Menu
 									1*1  +  // SkyBox
 									1*1;	// Fonts
-		DPSZs.setsInPool          = 3;		// DS
+		DPSZs.setsInPool          = 6;		// DS
 
 		std::cout << "\nLoading the scene\n\n";
 		if(SC.init(this, /*Npasses*/1, VDRs, PRs, "assets/models/scene.json") != 0) {
@@ -413,6 +471,7 @@ protected:
 		// This creates a new pipeline (with the current surface), using its shaders
 		P_phong.create(&RP);
 		P_pbr.create(&RP);
+		P_overlay.create(&RP);
 		P_skyBox.create(&RP);
 
 		// Here you define the data set
@@ -425,6 +484,19 @@ protected:
 			tex_drone_normal.getViewAndSampler()
 		};
 		DS_drone.init(this, &DSL_drone, tex_drone);
+
+		std::vector<VkDescriptorImageInfo> tex_screen0 = {
+			tex_overlay[0].getViewAndSampler()
+		};
+		DS_overlay[0].init(this, &DSL_overlay, tex_screen0);
+		std::vector<VkDescriptorImageInfo> tex_screen1 = {
+			tex_overlay[1].getViewAndSampler()
+		};
+		DS_overlay[1].init(this, &DSL_overlay, tex_screen1);
+		std::vector<VkDescriptorImageInfo> tex_screen2 = {
+			tex_overlay[2].getViewAndSampler()
+		};
+		DS_overlay[2].init(this, &DSL_overlay, tex_screen2);
 
 		std::vector<VkDescriptorImageInfo> tex_sky = {
 			tex_skyBox.getViewAndSampler()
@@ -447,11 +519,15 @@ protected:
 		// Cleanup pipelines
 		P_phong.cleanup();
 		P_pbr.cleanup();
+		P_overlay.cleanup();
 		P_skyBox.cleanup();
 
 		// Cleanup datasets
 		DS_global.cleanup();
 		DS_drone.cleanup();
+		for (int i = 0; i < 3; i++) {
+			DS_overlay[i].cleanup();
+		}
 		DS_skyBox.cleanup();
 
 		// Cleanup render pass
@@ -476,22 +552,29 @@ protected:
 		tex_drone_roughness.cleanup();
 		tex_drone_emissive.cleanup();
 		tex_drone_normal.cleanup();
-
+		for (int i = 0; i < 3; i++) {
+			tex_overlay[i].cleanup();
+		}
 		tex_skyBox.cleanup();
 
 		// Cleanup models
 		M_drone.cleanup();
+		for (int i = 0; i < 3; i++) {
+			M_overlay[i].cleanup();
+		}
 		M_skyBox.cleanup();
 
 		// Cleanup descriptor set layouts
 		DSL_global.cleanup();
 		DSL_map.cleanup();
 		DSL_drone.cleanup();
+		DSL_overlay.cleanup();
 		DSL_skyBox.cleanup();
 
 		// Destroy the pipelines
 		P_phong.destroy();
 		P_pbr.destroy();
+		P_overlay.destroy();
 		P_skyBox.destroy();
 
 		RP.destroy();
@@ -519,12 +602,19 @@ protected:
 	// You send to the GPU all the objects you want to draw, with their buffers and textures
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 	{
-		// Begin standard pass
-		//RP.begin(commandBuffer, currentImage);
-
 		if (state == AppState::Menu) {
 			RP.begin(commandBuffer, currentImage);
-			menuTxt.print(-0.25f, 0.25f, "[ENTER] Start Simulation\n\n[H] Help and Controls\n\n[ESC] Exit\n\n",1,"CO",true,true,false,TAL_LEFT,TRH_LEFT,TRV_BOTTOM,{1.0f,0.98f,0.9f,1.0f},{0.0f,0.0f,0.0f, 0.0f});
+			// P_overlay pipeline MENU
+			UBO_overlay[0].visible = true;
+			UBO_overlay[1].visible = false;
+			UBO_overlay[2].visible = false;
+			P_overlay.bind(commandBuffer);
+			for (int i = 0; i < 3; i++) {
+				M_overlay[i].bind(commandBuffer);
+				DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0);
+			}
+			menuTxt.print(-0.30f, 0.95f, "[ENTER] Start Simulation\n[H] Help and Controls\n[ESC] Exit\n",1,"CO",true,true,false,TAL_LEFT,TRH_LEFT,TRV_BOTTOM,{0.0f, 0.0f, 0.0f, 1.0f},{0.0f,0.0f,0.0f, 0.0f});
 			menuTxt.updateCommandBuffer();
 			RP.end(commandBuffer);
 			return;
@@ -552,6 +642,14 @@ protected:
 
 		SC.populateCommandBuffer(commandBuffer, 0, currentImage);
 
+		// P_overlay pipeline
+		P_overlay.bind(commandBuffer);
+		for (int i = 0; i < 3; i++) {
+			M_overlay[i].bind(commandBuffer);
+			DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0);
+		}
+
 		// P_skyBox pipeline
 		P_skyBox.bind(commandBuffer);
 		DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
@@ -571,11 +669,16 @@ protected:
 		bool escPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
 		bool hPressed   = glfwGetKey(window, GLFW_KEY_H)      == GLFW_PRESS;
 		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
+		bool bPressed   = glfwGetKey(window, GLFW_KEY_B)      == GLFW_PRESS;
 		bool enterPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
 
 		switch (state)
 		{
 		case AppState::Menu:
+			// Update the global uniform buffer
+			for (int i = 0; i < 3; i++) {
+				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
+			}
 			if (escPressed) {
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 			}
@@ -589,6 +692,8 @@ protected:
 			else if (enterPressed) {
 				menuTxt.removeText(1);
 				menuTxt.removeText(2);
+				reset();
+
 				state = AppState::Playing;
 				showStartText = true;
 				cout << "Launch the simualation...!\n";
@@ -622,6 +727,18 @@ protected:
 				menuTxt.updateCommandBuffer();
 			}
 			break;
+
+		case AppState::GameOver:
+
+			// Update the global uniform buffer
+			for (int i = 0; i < 3; i++) {
+				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
+			}
+			if (bPressed) {
+				state = AppState::Menu;
+				cout << "Return to Menu...!\n";
+				RebuildPipeline();
+			}
 		}
 		//-----------------------------------------------------------------------------------------------------
 		//-----------------------------------------------------------------------------------------------------
@@ -636,6 +753,20 @@ protected:
 			if (time > 5.0f) {
 				showStartText = false;
 			}
+		}
+		if (gameOver==1.0f) {
+			cout << "Game finished: WIN...!\n";
+			UBO_overlay[0].visible = false;
+			UBO_overlay[1].visible = true;
+			UBO_overlay[2].visible = false;
+			state = AppState::GameOver;
+		} else if (gameOver==-1.0f)
+		{
+			cout << "Game finished: LOSE...!\n";
+			UBO_overlay[0].visible = false;
+			UBO_overlay[1].visible = false;
+			UBO_overlay[2].visible = true;
+			state = AppState::GameOver;
 		}
 		// With [K] we can read game controls
 		if (glfwGetKey(window, GLFW_KEY_K)) {
@@ -656,7 +787,7 @@ protected:
 				showCommandsKeyboard = false;
 				std::string filename = "screen-" + std::to_string(index++) + ".png";
 				saveScreenshot(filename.c_str(), currentImage);
-				//RebuildPipeline();
+				std::cout << "Screenshot salvato in: " << filename << std::endl;
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_SPACE) && debounce) {
@@ -840,7 +971,7 @@ protected:
 		global_pos_drone.y = glm::clamp(global_pos_drone.y, minY, maxY);
 		global_pos_drone.z = glm::clamp(global_pos_drone.z, minZ, maxZ);
 
-		checkRingPassage(global_pos_drone, ringPositions, ringPassed);
+		gameOver = checkRingPassage(global_pos_drone, ringPositions, ringPassed);
 
 		if (glfwGetKey(w, GLFW_KEY_P) == GLFW_PRESS) {
 			std::cout << "Drone Position: "
@@ -848,7 +979,6 @@ protected:
 					  << global_pos_drone.y << ", "
 					  << global_pos_drone.z << std::endl;
 		}
-
 	}
 
 	const glm::vec3 dawnColor = glm::vec3(1.0f, 0.45f, 0.2f);
@@ -880,6 +1010,23 @@ protected:
 			gubo.lightIntensity = 0.8f; // light intensity
 		}
 	};
+
+	void reset() {
+		gameOver = 0.0f;
+		showStartText = false;
+		showCommandsKeyboard = false;
+
+		CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
+		CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
+
+		seenCenter   = true;
+		seenFollow   = false;
+		seenDrone    = false;
+		global_pos_drone = glm::vec3(-1000.0f, 250.0f, 130.0f);
+		droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
+
+		ringPassed = std::vector<bool>(10, false);
+	}
 };
 //-----------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------

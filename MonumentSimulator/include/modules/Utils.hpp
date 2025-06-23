@@ -36,6 +36,10 @@ struct SkyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
+struct OverlayUniformBlock {
+	alignas(4) float visible;
+};
+
 // The vertices data structures
 struct Vertex {
 	glm::vec3 pos;
@@ -48,6 +52,11 @@ struct VertexTan {
 	glm::vec2 UV;
 	glm::vec3 normal;
 	glm::vec4 tangent;
+};
+
+struct VertexOverlay {
+	glm::vec2 pos;
+	glm::vec2 UV;
 };
 
 struct skyBoxVertex {
