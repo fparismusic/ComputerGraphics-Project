@@ -27,15 +27,15 @@
                 "translate": [0, 150, 0],
                 "scale": [2000, 2000, 2000]},
       {"id": "m2",  "model": "m1",   "texture": ["mBase", "mNorm"],
-                "translate": [-2000, 150, 0],
+                "translate": [-1960, 145, 0],
                 "eulerAngles": [0, -180, 0],
                 "scale": [2000, 2000, 2000]},
       {"id": "m3",  "model": "m1",   "texture": ["mBase", "mNorm"],
-                "translate": [-2000, 150, -2000],
+                "translate": [-1960, 150, -1960],
                 "eulerAngles": [0, -180, 0],
                 "scale": [2000, 2000, 2000]},
       {"id": "m4",  "model": "m1",   "texture": ["mBase", "mNorm"],
-                "translate": [0, 150, -2000],
+                "translate": [0, 145, -1960],
                 "scale": [2000, 2000, 2000]},
 
 
