@@ -94,13 +94,14 @@ enum class AppState {
 // MonumentSimulator: subclass of BaseProject
 class MonumentSimulator : public BaseProject {
 protected:
-
+	
 	// --- Menu fields ---
 	AppState state = AppState::Menu;
 	TextMaker menuTxt;
 	float gameOver = 0.0f;
 	bool showStartText = false;
 	bool showCommandsKeyboard = false;
+	bool prevEscPressed = false;
 
 	// --- Window parameters ---
 	float Ar; // Aspect Ratio
@@ -642,6 +643,7 @@ void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
         return;
     }
 
+	
     // —— GAME OVER ——
     if (state == AppState::GameOver) {
         RP.begin(commandBuffer, currentImage);
@@ -721,17 +723,28 @@ void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 	//************************************************************************************************
 	//************************************************************************************************
     // Here is where you update the uniforms. Very likely this will be where you will be writing the logic of your application.
-	void updateUniformBuffer(uint32_t currentImage)
-	{
+void updateUniformBuffer(uint32_t currentImage)
+{
 		bool escPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
 		bool hPressed   = glfwGetKey(window, GLFW_KEY_H)      == GLFW_PRESS;
 		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
 		bool bPressed   = glfwGetKey(window, GLFW_KEY_B)      == GLFW_PRESS;
 		bool enterPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
+		// Detect solo il fronte di salita
+		bool escJustPressed = escPressed && !prevEscPressed;
 		const float DRONE_SCALE = 0.065f;
 
 		// ─── 1) LOGICA DI GIOCO (solo PLAYING) ─────────────────────────
 if (state == AppState::Playing) {
+	if (escJustPressed) {
+        // una sola volta al momento in cui premi ESC
+		menuTxt.removeText(2);
+        reset();
+        state = AppState::Menu;
+        std::cout << "Return to Menu...!\n";
+        RebuildPipeline();
+        return;
+    }
     // 1.a) Avvia timer
     if (!gameStarted) {
         gameStartTime = std::chrono::high_resolution_clock::now();
@@ -775,6 +788,7 @@ if (state == AppState::Playing) {
                       TAL_CENTER, TRH_CENTER, TRV_TOP,
                       {1,1,1,1}, {0.2f,0.2f,0.2f,0.7f});
         menuTxt.updateCommandBuffer();
+		
     }
 
     // 1.f) Verifica GameOver
