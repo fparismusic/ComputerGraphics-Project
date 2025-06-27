@@ -830,6 +830,9 @@ switch (state) {
     break;
 
   case AppState::GameOver:
+  	seenCenter = false;
+    seenFollow = false;
+    seenDrone  = true;
     // bind overlay win/lose
     for (int i = 0; i < 3; ++i)
         DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
