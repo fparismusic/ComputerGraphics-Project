@@ -72,7 +72,6 @@ if(APPLE)
 
     add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
     add_dependencies(${PROJECT_NAME} Shaders)
-
     # Copy the SPIR-V files from the source 'shaders' directory to the build directory
     foreach(SPV_FILE ${SPIRV_SOURCE_FILES})
         message(STATUS "Copying SPIR-V file: ${SPV_FILE}")
@@ -80,10 +79,10 @@ if(APPLE)
     endforeach()
 
     # Add shader target
-    add_custom_target(Shaders DEPENDS ${SPIRV_SOURCE_FILES})
+    add_custom_target(Shaders_1 DEPENDS ${SPIRV_SOURCE_FILES})
 
     # Ensure that depends on the SPIR-V files
-    add_dependencies(MonumentSimulator Shaders)
+    add_dependencies(MonumentSimulator Shaders_1)
 
     # Copy resources (textures, models, etc.) to the build directory
     file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)

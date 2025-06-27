@@ -109,6 +109,15 @@ protected:
 	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
 	float CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
+	//Time parameters
+	float gameTime = 300.0f; // 5 minutes
+	bool gameStarted = false;
+	std::chrono::time_point<std::chrono::high_resolution_clock> gameStartTime;
+
+	// --- HUD tracking variables ---
+	int lastPassedCount = -1;  // Per tracciare quando cambia il conteggio degli anelli
+	std::string lastTimeStr = "";  // Per tracciare quando cambia il tempo
+
 	// --- Drone parameters ---
 	bool seenCenter   = true;
 	bool seenFollow   = false;
@@ -600,65 +609,113 @@ protected:
 	}
     // Here it is the creation of the command buffer:
 	// You send to the GPU all the objects you want to draw, with their buffers and textures
-	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
-	{
-		if (state == AppState::Menu) {
-			RP.begin(commandBuffer, currentImage);
-			// P_overlay pipeline MENU
-			UBO_overlay[0].visible = true;
-			UBO_overlay[1].visible = false;
-			UBO_overlay[2].visible = false;
-			P_overlay.bind(commandBuffer);
-			for (int i = 0; i < 3; i++) {
-				M_overlay[i].bind(commandBuffer);
-				DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0);
-			}
-			menuTxt.print(-0.85f, 0.7f, "[ENTER] Start Simulation\t   [H] Help and Controls\t   [ESC] Exit\t",1,"CO",true,true,false,TAL_LEFT,TRH_LEFT,TRV_BOTTOM,{0.0f, 0.0f, 0.0f, 1.0f},{0.0f,0.0f,0.0f, 0.0f});
-			menuTxt.updateCommandBuffer();
-			RP.end(commandBuffer);
-			return;
-		}
+void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
+{
+    // —— MENU ——
+    if (state == AppState::Menu) {
+        RP.begin(commandBuffer, currentImage);
 
-		RP.begin(commandBuffer, currentImage);
+        UBO_overlay[0].visible = true;
+        UBO_overlay[1].visible = false;
+        UBO_overlay[2].visible = false;
 
-		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter binds the data set
-		P_phong.bind(commandBuffer);
+        P_overlay.bind(commandBuffer);
+        M_overlay[0].bind(commandBuffer);
+        DS_overlay[0].bind(commandBuffer, P_overlay, 0, currentImage);
+        vkCmdDrawIndexed(commandBuffer,
+            static_cast<uint32_t>(M_overlay[0].indices.size()),
+            1, 0, 0, 0
+        );
 
-		// For a Dataset object, this command binds the corresponing dataset to the command buffer and pipeline passed in its first and second parameters.
-		// The third parameter is the number of the set being bound
-		// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
-		// This is done automatically in file Starter.hpp, however the command here needs also the index of the current image in the swap chain, passed in its last parameter binds the model
-		DS_global.bind(commandBuffer, P_phong, 0, currentImage);
+        // Ristampo il testo del menu
+        menuTxt.print(
+            -0.85f, 0.7f,
+            "[ENTER] Start Simulation   [H] Help & Controls   [ESC] Exit",
+            1, "CO",
+            true, true, false,
+            TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
+            {0,0,0,1}, {0,0,0,0}
+        );
+        menuTxt.updateCommandBuffer();
 
-		// For a Model object, this command binds the corresponing index and vertex buffer
-		// to the command buffer passed in its parameter
-		// record the drawing command in the command buffer
-		P_pbr.bind(commandBuffer);
-		DS_global.bind(commandBuffer, P_pbr, 0, currentImage);
-		DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
-		M_drone.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0);
+        RP.end(commandBuffer);
+        return;
+    }
 
-		SC.populateCommandBuffer(commandBuffer, 0, currentImage);
+    // —— GAME OVER ——
+    if (state == AppState::GameOver) {
+        RP.begin(commandBuffer, currentImage);
 
-		// P_overlay pipeline
-		P_overlay.bind(commandBuffer);
-		for (int i = 0; i < 3; i++) {
-			M_overlay[i].bind(commandBuffer);
-			DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0);
-		}
+        // Mostro solo la texture win/lose  
+        UBO_overlay[0].visible = false;
+        UBO_overlay[1].visible = (gameOver > 0.0f);
+        UBO_overlay[2].visible = (gameOver < 0.0f);
 
-		// P_skyBox pipeline
-		P_skyBox.bind(commandBuffer);
-		DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
-		DS_skyBox.bind(commandBuffer, P_skyBox, 1, currentImage);
-		M_skyBox.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0);
+        // Disabilita sempre depth-test/write e forza il passaggio
+        P_overlay.bind(commandBuffer);
+        for (int i = 1; i <= 2; ++i) {
+            M_overlay[i].bind(commandBuffer);
+            DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+            vkCmdDrawIndexed(
+                commandBuffer,
+                static_cast<uint32_t>(M_overlay[i].indices.size()),
+                1, 0, 0, 0
+            );
+        }
 
-		RP.end(commandBuffer);
-	}
+        // “Back to Menu”
+        menuTxt.print(
+            0.0f, -0.8f,
+            "[B] Back to Menu", 3, "SS",
+            true, true, false,
+            TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+            {1,1,1,1},{0,0,0,0.7f}
+        );
+        menuTxt.updateCommandBuffer();
+
+        RP.end(commandBuffer);
+        return;
+    }
+
+    // 2) Altrimenti procedo con il rendering “normale” di scena, drone, HUD, skybox...
+    RP.begin(commandBuffer, currentImage);
+
+    // --- scena e drone ---
+    P_phong.bind(commandBuffer);
+    DS_global.bind(commandBuffer, P_phong, 0, currentImage);
+
+    P_pbr.bind(commandBuffer);
+    DS_global.bind(commandBuffer, P_pbr, 0, currentImage);
+    DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
+    M_drone.bind(commandBuffer);
+    vkCmdDrawIndexed(commandBuffer,
+        static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0
+    );
+
+    SC.populateCommandBuffer(commandBuffer, 0, currentImage);
+
+    // --- HUD (se vuoi tenerlo in PLAYING) ---
+    P_overlay.bind(commandBuffer);
+    for (int i = 0; i < 3; i++) {
+        M_overlay[i].bind(commandBuffer);
+        DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+        vkCmdDrawIndexed(commandBuffer,
+            static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0
+        );
+    }
+
+    // --- skybox ---
+    P_skyBox.bind(commandBuffer);
+    DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
+    DS_skyBox.bind(commandBuffer, P_skyBox, 1, currentImage);
+    M_skyBox.bind(commandBuffer);
+    vkCmdDrawIndexed(commandBuffer,
+        static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0
+    );
+
+    RP.end(commandBuffer);
+}
+
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -671,229 +728,201 @@ protected:
 		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
 		bool bPressed   = glfwGetKey(window, GLFW_KEY_B)      == GLFW_PRESS;
 		bool enterPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
+		const float DRONE_SCALE = 0.065f;
 
-		switch (state)
-		{
-		case AppState::Menu:
-			// Update the global uniform buffer
-			for (int i = 0; i < 3; i++) {
-				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
-			}
-			if (escPressed) {
-				glfwSetWindowShouldClose(window, GLFW_TRUE);
-			}
-			else if (hPressed) {
-				menuTxt.print(-0.6f, 0.75f, "Final project of the Computer Graphics course\nPress C to close this text", 2, "CO", false, false, false, TAL_CENTER, TRH_LEFT, TRV_TOP, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f});
-				menuTxt.updateCommandBuffer();
-			}
-			else if (cPressed) {
-				menuTxt.removeText(2);
-			}
-			else if (enterPressed) {
-				menuTxt.removeText(1);
-				menuTxt.removeText(2);
-				reset();
+		// ─── 1) LOGICA DI GIOCO (solo PLAYING) ─────────────────────────
+if (state == AppState::Playing) {
+    // 1.a) Avvia timer
+    if (!gameStarted) {
+        gameStartTime = std::chrono::high_resolution_clock::now();
+        gameStarted   = true;
+    }
+    // 1.b) Calcola gameTime residuo
+    float elapsed = std::chrono::duration<float>(
+        std::chrono::high_resolution_clock::now() - gameStartTime).count();
+    gameTime = std::max(0.0f, 300.0f - elapsed);
 
-				state = AppState::Playing;
-				showStartText = true;
-				cout << "Launch the simualation...!\n";
-				RebuildPipeline();
-			}
-			break;
+	if (gameTime < 0.1f) {
+    seenCenter = false;
+    seenFollow = false;
+    seenDrone  = true;  
+}
 
-		case AppState::Playing:
-			if (escPressed) {
-				menuTxt.removeText(1);
-				state = AppState::Menu;
-				cout << "Return to Menu...!\n";
-				RebuildPipeline();
-			}
-			if (showStartText)
-			{
-				menuTxt.removeText(1);
-				menuTxt.print(-0.95f, -0.95f, "Drone Simulator\n\nFilippo Paris\nFrancesco Moretti\nMoein Zadeh", 1, "CO", false, true, false, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f});
-				menuTxt.updateCommandBuffer();
-			}
-			else if (showCommandsKeyboard)
-			{
-				menuTxt.removeText(1);
-				menuTxt.print(-0.95f, -0.95f, "Move with W-A-S-D | Q-E | R-F\nMove arrows to look around\nChange camera with I-O-P\nPress SPACE to take pictures\nPress C to close this text\nPress ESC to return to the menu", 1, "SS", false, true, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f});
-				menuTxt.updateCommandBuffer();
-			}
-			else
-			{
-				menuTxt.removeText(1);
-				menuTxt.print(-0.95f, -0.95f, "Press K (Keyboard)\nto see the command list", 1, "SS", false, true, true, TAL_LEFT, TRH_LEFT, TRV_TOP, {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f});
-				menuTxt.updateCommandBuffer();
-			}
-			break;
+    // 1.c) Input drone + collisioni (checkRingPassage inside)
+    float deltaT; glm::vec3 m, r; bool fire=false;
+    getSixAxis(deltaT, m, r, fire);
+    totalElapsedTime += deltaT;
+    getDroneInput(window, deltaT);
+    setCameraMode(window);
 
-		case AppState::GameOver:
+    // 1.d) Conteggio anelli + formattazione timer
+    int passedCount = std::count(ringPassed.begin(), ringPassed.end(), true);
+    int totalSec    = static_cast<int>(std::ceil(gameTime));
+    char timeStr[6];
+    std::snprintf(timeStr, sizeof(timeStr), "%02d:%02d",
+                  totalSec/60, totalSec%60);
 
-			// Update the global uniform buffer
-			for (int i = 0; i < 3; i++) {
-				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
-			}
-			if (bPressed) {
-				state = AppState::Menu;
-				cout << "Return to Menu...!\n";
-				RebuildPipeline();
-			}
-		}
-		//-----------------------------------------------------------------------------------------------------
-		//-----------------------------------------------------------------------------------------------------
-		// State == Playing: update the game logic
-		float time = chrono::duration<float>(chrono::high_resolution_clock::now() - startTime).count();
-		static int index = 0;
-		static bool debounce = false;
-		static int curDebounce = 0;
+    // 1.e) Aggiorna HUD se cambia
+    if (passedCount != lastPassedCount || std::string(timeStr) != lastTimeStr) {
+        lastPassedCount = passedCount;
+        lastTimeStr     = timeStr;
+        std::string hud = "Rings: " + std::to_string(passedCount)
+                        + "/10   Time: " + timeStr;
+        constexpr int HUD_ID = 2;
+        menuTxt.removeText(HUD_ID);
+        menuTxt.print(0.0f, 0.90f, hud, HUD_ID, "SS",
+                      false, true, false,
+                      TAL_CENTER, TRH_CENTER, TRV_TOP,
+                      {1,1,1,1}, {0.2f,0.2f,0.2f,0.7f});
+        menuTxt.updateCommandBuffer();
+    }
 
-		// First, we manage the text display
-		if (showStartText) {
-			if (time > 5.0f) {
-				showStartText = false;
-			}
-		}
-		if (gameOver==1.0f) {
-			cout << "Game finished: WIN...!\n";
-			UBO_overlay[0].visible = false;
-			UBO_overlay[1].visible = true;
-			UBO_overlay[2].visible = false;
-			state = AppState::GameOver;
-		} else if (gameOver==-1.0f)
-		{
-			cout << "Game finished: LOST...!\n";
-			UBO_overlay[0].visible = false;
-			UBO_overlay[1].visible = false;
-			UBO_overlay[2].visible = true;
-			state = AppState::GameOver;
-		}
-		// With [K] we can read game controls
-		if (glfwGetKey(window, GLFW_KEY_K)) {
-			showCommandsKeyboard = true;
-			RebuildPipeline();
-		}
-		// With [C] we can close the game controls
-		if (glfwGetKey(window, GLFW_KEY_C)) {
-			showCommandsKeyboard = false;
-			RebuildPipeline();
-		}
-		// With [SPACE] we can take the pictures
-		if(glfwGetKey(window, GLFW_KEY_SPACE)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_SPACE;
+    // 1.f) Verifica GameOver
+    if (gameTime <= 0.0f) {
+        gameOver = -1.0f;
+        UBO_overlay[2].visible = true;
+		menuTxt.removeText(2);
+        state = AppState::GameOver;
+    } else if (passedCount == static_cast<int>(ringPassed.size())) {
+        gameOver = 1.0f;
+        UBO_overlay[1].visible = true;
+		menuTxt.removeText(2);
+        state = AppState::GameOver;
+    }
 
-				showCommandsKeyboard = false;
-				std::string filename = "screen-" + std::to_string(index++) + ".png";
-				saveScreenshot(filename.c_str(), currentImage);
-				std::cout << "Screenshot salvato in: " << filename << std::endl;
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_SPACE) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-		//-----------------------------------------------------------------------------------------------------
-		//-----------------------------------------------------------------------------------------------------
-		float deltaT;
-		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
-		bool fire = false;
-		getSixAxis(deltaT, m, r, fire); // deltaT: time since last frame
-		totalElapsedTime += deltaT;
-		getDroneInput(window, deltaT); // update drone position and orientation
-		setCameraMode(window); // set camera mode based on key presses
+    // 1.g) ESC torna a Menu
+    if (escPressed) {
+        reset();
+        state = AppState::Menu;
+        RebuildPipeline();
+    }
+}
 
-		glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
-		proj[1][1] *= -1;
+// ─── 2) SWITCH sui restanti stati ───────────────────────────────
+switch (state) {
+  case AppState::Menu:
+    // bind overlay menu
+    for (int i = 0; i < 3; ++i)
+        DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
 
-		glm::vec3 dronePos = global_pos_drone;
+    if (hPressed) {
+      // stampa help…
+      menuTxt.updateCommandBuffer();
+    } else if (cPressed) {
+      menuTxt.removeText(2);
+    } else if (enterPressed) {
+      menuTxt.removeText(1);
+    menuTxt.removeText(2);
+    reset();
 
-		// view
-		glm::mat4 view;
-		const float DRONE_SCALE = 0.065f;  // or whatever your drone scale is
+    // Nascondi il menu overlay proprio adesso:
+    UBO_overlay[0].visible = false;
+    UBO_overlay[1].visible = false;
+    UBO_overlay[2].visible = false;
+    // (assicurati poi di mappare questi UBO, se necessario)
 
-		if (seenCenter) {
-			glm::vec3 offset = glm::vec3(0, 0, 4.0f * DRONE_SCALE); // offset from the drone position
-			glm::mat4 totalRotation = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0, 1, 0)) *
-									  glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1, 0, 0)) *
-									  glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0, 0, 1));
+    state = AppState::Playing;
+    showStartText = true;
+    RebuildPipeline();
+    } else if (escPressed) {
+      glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    break;
 
-			// CamPos is the position of the camera, which is offset from the drone position
-			glm::vec3 rotated_offset = glm::vec3(totalRotation * glm::vec4(offset, 0.0f));
-			glm::vec3 camP = dronePos + rotated_offset;
-			// The up vector is also rotated to match the drone's orientation
-			glm::vec3 upVector = glm::normalize(glm::vec3(totalRotation * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f)));
+  case AppState::GameOver:
+    // bind overlay win/lose
+    for (int i = 0; i < 3; ++i)
+        DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
 
-			view = glm::lookAt(camP, dronePos, upVector);
-		}
-		else if (seenFollow) {
-			glm::vec3 camP = dronePos + glm::vec3(0, 4.0f * DRONE_SCALE, 1.5f * DRONE_SCALE);  // follow from above/behind
-			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
-		}
-		else if (seenDrone) {
-			glm::vec3 camP = dronePos + glm::vec3(glm::rotate(
-				glm::mat4(1.0f), droneYaw,
-				glm::vec3(0, 1, 0)) * glm::vec4(0.0f, 1.5f * DRONE_SCALE, 0.0f, 1.0f));
-			view = LookInDirMat(camP, glm::vec3(droneYaw, dronePitch, droneRoll));
-		}
+    if (bPressed) {
+      reset();
+      state = AppState::Menu;
+      RebuildPipeline();
+    }
+    break;
 
-		CamPos = glm::vec3(glm::inverse(view)[3]);
+  default: break;
+}
 
-		GUBO.proj = proj;
-		GUBO.view = view;
-		GUBO.cameraPos = CamPos;
-		GUBO.lightDir = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f)); // high sun in the sky
-		GUBO.time = totalElapsedTime;
-		updateGlobalUBO(GUBO, totalElapsedTime);
-		DS_global.map(currentImage, &GUBO, 0);
+    // ─── 3) Calcolo delle matrici di vista e proiezione ───────────────
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
+    proj[1][1] *= -1;
 
-		// UBOs mountain
-		int instanceId;
+    glm::mat4 view;
+    // (ricalcola view esattamente come prima, in base a seenCenter/seenFollow/seenDrone)
+    if (seenCenter) {
+        glm::vec3 offset = glm::vec3(0, 0, 4.0f * DRONE_SCALE);
+        glm::mat4 R = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
+                    * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
+                    * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1));
+        glm::vec3 camP = global_pos_drone + glm::vec3(R * glm::vec4(offset,0.0f));
+        glm::vec3 up  = glm::normalize(glm::vec3(R * glm::vec4(0,1,0,0)));
+        view = glm::lookAt(camP, global_pos_drone, up);
+    }
+    else if (seenFollow) {
+        glm::vec3 camP = global_pos_drone + glm::vec3(0, 4.0f*DRONE_SCALE, 1.5f*DRONE_SCALE);
+        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
+    }
+    else {
+        // seenDrone
+        glm::vec3 camP = global_pos_drone + glm::vec3(
+            glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0))
+            * glm::vec4(0, 1.5f*DRONE_SCALE, 0, 1));
+        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
+    }
 
-		for(instanceId = 0; instanceId < SC.TI[0].InstanceCount; instanceId++) {
-			ubos.mMat   = SC.TI[0].I[instanceId].Wm;
-			ubos.mvpMat = proj * view * ubos.mMat;
-			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+    // ─── 4) AGGIORNO UBO GLOBALI ───────────────────────────────────────
+    GUBO.proj       = proj;
+    GUBO.view       = view;
+    GUBO.cameraPos  = CamPos = glm::vec3(glm::inverse(view)[3]);
+    GUBO.lightDir   = glm::normalize(glm::vec3(0,1,0));
+    GUBO.time       = totalElapsedTime;
+    updateGlobalUBO(GUBO, totalElapsedTime);
+    DS_global.map(currentImage, &GUBO, 0);
 
-			SC.TI[0].I[instanceId].DS[0][0]->map(currentImage, &GUBO, 0); // Set 0
-			SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
-		}
+// ─── 5) UBOs Montagna ─────────────────────────────────────────────
+for (int i = 0; i < SC.TI[0].InstanceCount; ++i) {
+    ubos.mMat   = SC.TI[0].I[i].Wm;
+    ubos.mvpMat = proj * view * ubos.mMat;
+    ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+    // Mappa prima il GUBO (set 0), poi ubos (set 1):
+    SC.TI[0].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
+    SC.TI[0].I[i].DS[0][1]->map(currentImage, &ubos, 0);
+}
 
-		// UBOs station
-		for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
-			ubosStart.mMat   = SC.TI[1].I[instanceId].Wm;
-			ubosStart.mvpMat = proj * view * ubosStart.mMat;
-			ubosStart.nMat   = glm::inverse(glm::transpose(ubosStart.mMat));
+// ─── 6) UBOs Stazione ────────────────────────────────────────────
+for (int i = 0; i < SC.TI[1].InstanceCount; ++i) {
+    ubosStart.mMat   = SC.TI[1].I[i].Wm;
+    ubosStart.mvpMat = proj * view * ubosStart.mMat;
+    ubosStart.nMat   = glm::inverse(glm::transpose(ubosStart.mMat));
+    // Anche qui, prima GUBO poi ubosStart:
+    SC.TI[1].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
+    SC.TI[1].I[i].DS[0][1]->map(currentImage, &ubosStart, 0);
+}
 
-			SC.TI[1].I[instanceId].DS[0][0]->map(currentImage, &GUBO, 0); // Set 0
-			SC.TI[1].I[instanceId].DS[0][1]->map(currentImage, &ubosStart, 0);  // Set 1
-		}
+    // ─── 7) UBO Drone ────────────────────────────────────────────────
+    {
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), global_pos_drone)
+                        * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
+                        * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
+                        * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1))
+                        * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0))
+                        * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+        UBO_drone.mvpMat = proj * view * model;
+        UBO_drone.mMat   = model;
+        UBO_drone.nMat   = glm::inverse(glm::transpose(model));
+        DS_drone.map(currentImage, &UBO_drone, 0);
+    }
 
-		// UBO drone
-		// model
-		glm::mat4 modelDrone = glm::translate(glm::mat4(1.0f), global_pos_drone)
-							 * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
-							 * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
-							 * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1))
-							 * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0))
-							 * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));  // Shrink drone;;
+    // ─── 8) UBO SkyBox ───────────────────────────────────────────────
+    {
+        glm::mat4 skyModel = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1,0,0))
+                           * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
+        UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view)) * skyModel;
+        DS_skyBox.map(currentImage, &UBO_skyBox, 0);
+    }
+}
 
-		UBO_drone.mvpMat = proj * view * modelDrone;
-		UBO_drone.mMat = modelDrone;
-		UBO_drone.nMat = glm::inverse(glm::transpose(UBO_drone.mMat));
-		DS_drone.map(currentImage, &UBO_drone, 0);
-
-		// SkyBox UBO
-		// model
-		glm::mat4 skyboxModel =
-			glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0)) *  // fix orientation
-			glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));										 // enlarge
-
-		UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view)) * skyboxModel;
-		DS_skyBox.map(currentImage, &UBO_skyBox, 0);
-	}
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -987,7 +1016,7 @@ protected:
 		gubo.time = elapsedTime;
 
 		// 3 min  cycle
-		float t = fmod(elapsedTime, 180.0f);
+		float t = fmod(elapsedTime, 300.0f);
 
 		// Sun color and direction
 		glm::vec3 lightColor;
@@ -1023,6 +1052,11 @@ protected:
 		droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 
 		ringPassed = std::vector<bool>(10, false);
+		 // Resetta il timer
+		gameTime = 300.0f;
+		gameStarted = false;
+		lastPassedCount = -1;
+		lastTimeStr = "";
 	}
 };
 //-----------------------------------------------------------------------------------------------------
@@ -1031,13 +1065,13 @@ protected:
  * MAIN FUNCTION: do not touch this
  */
 int main() {
-    MonumentSimulator app;
+	MonumentSimulator app;
 
-    try {
-        app.run();
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+	try {
+		app.run();
+	} catch (const std::exception& e) {
+		std::cerr << "ERROR: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
 }
