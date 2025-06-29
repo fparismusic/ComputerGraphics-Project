@@ -904,7 +904,7 @@ switch (state) {
     glm::mat4 view;
     // (ricalcola view esattamente come prima, in base a seenCenter/seenFollow/seenDrone)
     if (seenCenter) {
-        glm::vec3 offset = glm::vec3(0, 0, 4.0f * DRONE_SCALE);
+        glm::vec3 offset = glm::vec3(0, 0, 6.4f * DRONE_SCALE);
         glm::mat4 R = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
                     * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
                     * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1));
