@@ -77,7 +77,7 @@ float checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::v
 
 	// Check for game completion
 	if (std::all_of(passed.begin(), passed.end(), [](bool b) { return b; })) {
-		std::cout << "🎉 All rings passed! Game complete!" << std::endl;
+		std::cout << "All rings passed! Game complete!" << std::endl;
 		res =  1.0f;
 	}
 	return res;
@@ -106,20 +106,22 @@ protected:
 	// --- Window parameters ---
 	float Ar; // Aspect Ratio
 
-	// Camera controls
+	// --- Camera controls ---
 	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
 	float CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
-	//Time parameters
+	// --- Time parameters ---
+	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+	float totalElapsedTime = 0.0f;
 	float gameTime = 300.0f; // 5 minutes
 	bool gameStarted = false;
 	std::chrono::time_point<std::chrono::high_resolution_clock> gameStartTime;
 
 	// --- HUD tracking variables ---
-	int lastPassedCount = -1;  // Per tracciare quando cambia il conteggio degli anelli
+	int lastPassedCount = -1;		// Tracking the number of passed rings
 	int lastTotalSec    = -1;
-	char hudBuffer[32];    // buffer abbastanza grande
-	std::string lastTimeStr = "";  // Per tracciare quando cambia il tempo
+	char hudBuffer[32];				// buffer big enough
+	std::string lastTimeStr = "";   // Tracking time
 	int HUD_ID = 2;
 
 	// --- Drone parameters ---
@@ -135,10 +137,6 @@ protected:
 	const float maxY =  500.0f;
 	const float minZ = -3000.0f;
 	const float maxZ =  1000.0f;
-
-	// Time
-	std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
-	float totalElapsedTime = 0.0f;
 
 	// --- Render Pass ---
 	RenderPass RP;
@@ -190,11 +188,11 @@ protected:
 	SkyBoxUniformBufferObject UBO_skyBox;
 	GlobalUniformBufferObject GUBO;
 
+	// --- Scene ---
 	Scene SC;
 	std::vector<VertexDescriptorRef>  VDRs;
 	std::vector<TechniqueRef> PRs;
 	std::vector<glm::vec3> mountainPoints;
-
 
 	std::vector<glm::vec3> ringPositions = {
 		{60.753, 410.153, 201.635},
@@ -613,141 +611,141 @@ protected:
 	}
     // Here it is the creation of the command buffer:
 	// You send to the GPU all the objects you want to draw, with their buffers and textures
-void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
-{
-    // —— MENU ——
-    if (state == AppState::Menu) {
-        RP.begin(commandBuffer, currentImage);
+	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
+	{
+	    // —— MENU ─────────────────────────
+	    if (state == AppState::Menu) {
+	        RP.begin(commandBuffer, currentImage);
 
-        UBO_overlay[0].visible = true;
-        UBO_overlay[1].visible = false;
-        UBO_overlay[2].visible = false;
+	        UBO_overlay[0].visible = true;
+	        UBO_overlay[1].visible = false;
+	        UBO_overlay[2].visible = false;
 
-        P_overlay.bind(commandBuffer);
-        M_overlay[0].bind(commandBuffer);
-        DS_overlay[0].bind(commandBuffer, P_overlay, 0, currentImage);
-        vkCmdDrawIndexed(commandBuffer,
-            static_cast<uint32_t>(M_overlay[0].indices.size()),
-            1, 0, 0, 0
-        );
+	        P_overlay.bind(commandBuffer);
+	        M_overlay[0].bind(commandBuffer);
+	        DS_overlay[0].bind(commandBuffer, P_overlay, 0, currentImage);
+	        vkCmdDrawIndexed(commandBuffer,
+	            static_cast<uint32_t>(M_overlay[0].indices.size()),
+	            1, 0, 0, 0
+	        );
 
-        // Ristampo il testo del menu
-        menuTxt.print(
-            -0.85f, 0.7f,
-            "[ENTER] Start Simulation   [H] Help & Controls   [ESC] Exit",
-            1, "CO",
-            true, true, false,
-            TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
-            {0,0,0,1}, {0,0,0,0}
-        );
-        menuTxt.updateCommandBuffer();
+	        // Re-print the menu text
+	        menuTxt.print(
+	            -0.85f, 0.7f,
+	            "[ENTER] Start Simulation   [H] Help & Controls   [ESC] Exit",
+	            1, "CO",
+	            true, true, false,
+	            TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
+	            {0,0,0,1}, {0,0,0,0}
+	        );
+	        menuTxt.updateCommandBuffer();
 
-        RP.end(commandBuffer);
-        return;
-    }
+	        RP.end(commandBuffer);
+	        return;
+	    }
 
-	
-    // —— GAME OVER ——
-    if (state == AppState::GameOver) {
-        RP.begin(commandBuffer, currentImage);
 
-        // Mostro solo la texture win/lose  
-        UBO_overlay[0].visible = false;
-        UBO_overlay[1].visible = (gameOver > 0.0f);
-        UBO_overlay[2].visible = (gameOver < 0.0f);
+	    // —— GAME OVER ─────────────────────────
+	    if (state == AppState::GameOver) {
+	        RP.begin(commandBuffer, currentImage);
 
-        // Disabilita sempre depth-test/write e forza il passaggio
-        P_overlay.bind(commandBuffer);
-        for (int i = 1; i <= 2; ++i) {
-            M_overlay[i].bind(commandBuffer);
-            DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
-            vkCmdDrawIndexed(
-                commandBuffer,
-                static_cast<uint32_t>(M_overlay[i].indices.size()),
-                1, 0, 0, 0
-            );
-        }
+	        // Showing only the appropriate overlay based on gameOver value
+	        UBO_overlay[0].visible = false;
+	        UBO_overlay[1].visible = (gameOver > 0.0f);
+	        UBO_overlay[2].visible = (gameOver < 0.0f);
 
-        // “Back to Menu”
-        menuTxt.print(
-            0.0f, -0.8f,
-            "[B] Back to Menu", 3, "SS",
-            true, true, false,
-            TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-            {1,1,1,1},{0,0,0,0.7f}
-        );
-        menuTxt.updateCommandBuffer();
+	        // Disable always depth test
+	        P_overlay.bind(commandBuffer);
+	        for (int i = 1; i <= 2; ++i) {
+	            M_overlay[i].bind(commandBuffer);
+	            DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+	            vkCmdDrawIndexed(
+	                commandBuffer,
+	                static_cast<uint32_t>(M_overlay[i].indices.size()),
+	                1, 0, 0, 0
+	            );
+	        }
 
-        RP.end(commandBuffer);
-        return;
-    }
+	        // “Back to Menu”
+	        menuTxt.print(
+	            0.0f, -0.8f,
+	            "[B] Back to Menu", 3, "SS",
+	            true, true, false,
+	            TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+	            {1,1,1,1},{0,0,0,0.7f}
+	        );
+	        menuTxt.updateCommandBuffer();
 
-    // 2) Altrimenti procedo con il rendering “normale” di scena, drone, HUD, skybox...
-    RP.begin(commandBuffer, currentImage);
+	        RP.end(commandBuffer);
+	        return;
+	    }
 
-    // --- scena e drone ---
-    P_phong.bind(commandBuffer);
-    DS_global.bind(commandBuffer, P_phong, 0, currentImage);
+	    // —— NORMAL RENDERING ─────────────────────────
+	    RP.begin(commandBuffer, currentImage);
 
-    P_pbr.bind(commandBuffer);
-    DS_global.bind(commandBuffer, P_pbr, 0, currentImage);
-    DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
-    M_drone.bind(commandBuffer);
-    vkCmdDrawIndexed(commandBuffer,
-        static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0
-    );
+	    // --- scene and drone ---
+	    P_phong.bind(commandBuffer);
+	    DS_global.bind(commandBuffer, P_phong, 0, currentImage);
 
-    SC.populateCommandBuffer(commandBuffer, 0, currentImage);
+	    P_pbr.bind(commandBuffer);
+	    DS_global.bind(commandBuffer, P_pbr, 0, currentImage);
+	    DS_drone.bind(commandBuffer,  P_pbr, 1, currentImage);
+	    M_drone.bind(commandBuffer);
+	    vkCmdDrawIndexed(commandBuffer,
+	        static_cast<uint32_t>(M_drone.indices.size()), 1, 0, 0, 0
+	    );
 
-    // --- HUD (se vuoi tenerlo in PLAYING) ---
-    P_overlay.bind(commandBuffer);
-    for (int i = 0; i < 3; i++) {
-        M_overlay[i].bind(commandBuffer);
-        DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
-        vkCmdDrawIndexed(commandBuffer,
-            static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0
-        );
-    }
+	    SC.populateCommandBuffer(commandBuffer, 0, currentImage);
 
-    // --- skybox ---
-    P_skyBox.bind(commandBuffer);
-    DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
-    DS_skyBox.bind(commandBuffer, P_skyBox, 1, currentImage);
-    M_skyBox.bind(commandBuffer);
-    vkCmdDrawIndexed(commandBuffer,
-        static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0
-    );
-menuTxt.print(
-  -0.95f, -0.8f,   
-  "Filippo Paris\nFrancesco Moretti\nMoein Zadeh",
-  3, "CO",
-  false, true, false,
-  TAL_LEFT, TRH_LEFT, TRV_BOTTOM,   
-  {1, 1, 1, 1},
-  {0, 0, 0, 1.0f}  
-);
-menuTxt.print(-0.95f, -0.52f,
-        "Move with W-A-S-D | Q-E | R-F\n"
-        "Move arrows to look around\n"
-        "Change camera with I-O-P\n"
-        "Press ESC to return to the menu",
-        4, "SS",
-        false, true, true,
-        TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
-        {1,0.99,0.99f,1}, 
-		{0,0,0,1.0f}
-        );
+	    // --- HUD ---
+	    P_overlay.bind(commandBuffer);
+	    for (int i = 0; i < 3; i++) {
+	        M_overlay[i].bind(commandBuffer);
+	        DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+	        vkCmdDrawIndexed(commandBuffer,
+	            static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0
+	        );
+	    }
 
-    RP.end(commandBuffer);
-}
+	    // --- skybox ---
+	    P_skyBox.bind(commandBuffer);
+	    DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
+	    DS_skyBox.bind(commandBuffer, P_skyBox, 1, currentImage);
+	    M_skyBox.bind(commandBuffer);
+	    vkCmdDrawIndexed(commandBuffer,
+	        static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0
+	    );
 
+		menuTxt.print(
+		  -0.95f, -0.8f,
+		  "Filippo Paris\nFrancesco Moretti\nMoein Zadeh",
+		  3, "CO",
+		  true, true, true,
+		  TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
+		  {1.0f, 0.98f, 0.9f, 1.0f},
+		  {0.2f, 0.2f, 0.2f, 1.0f}
+		);
+		menuTxt.print(-0.95f, -0.52f,
+			"Move with W-A-S-D / Q-E / R-F\n"
+		    "Move arrows to look around\n"
+		    "Change camera with I / O / P\n"
+		    "Press ESC to return to the menu",
+		    4, "SS",
+		    false, true, true,
+		    TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
+		    {1.0f,0.98f,0.9f,1.0f},
+			{0.2f, 0.2f, 0.2f, 1.0f}
+		);
+
+	    RP.end(commandBuffer);
+	}
 
 	//************************************************************************************************
 	//************************************************************************************************
 	//************************************************************************************************
     // Here is where you update the uniforms. Very likely this will be where you will be writing the logic of your application.
-void updateUniformBuffer(uint32_t currentImage)
-{
+	void updateUniformBuffer(uint32_t currentImage)
+	{
 		bool escPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
 		bool hPressed   = glfwGetKey(window, GLFW_KEY_H)      == GLFW_PRESS;
 		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
@@ -757,225 +755,232 @@ void updateUniformBuffer(uint32_t currentImage)
 		bool escJustPressed = escPressed && !prevEscPressed;
 		const float DRONE_SCALE = 0.065f;
 
-		// ─── 1) LOGICA DI GIOCO (solo PLAYING) ─────────────────────────
-if (state == AppState::Playing) {
-	if (escJustPressed) {
-        // una sola volta al momento in cui premi ESC
-		menuTxt.removeText(2);
-		menuTxt.removeText(3);
-		menuTxt.removeText(4);
-        reset();
-        state = AppState::Menu;
-        std::cout << "Return to Menu...!\n";
-        RebuildPipeline();
-        return;
-    }
-    // 1.a) Avvia timer
-    if (!gameStarted) {
-        gameStartTime = std::chrono::high_resolution_clock::now();
-        gameStarted   = true;
-    }
-    // 1.b) Calcola gameTime residuo
-    float elapsed = std::chrono::duration<float>(
-        std::chrono::high_resolution_clock::now() - gameStartTime).count();
-    gameTime = std::max(0.0f, 300.0f - elapsed);
+		// ─── GAME LOGIC (only PLAYING) ─────────────────────────
+		if (state == AppState::Playing) {
+			if (escJustPressed) {
+		        // ESC pressed: reset game
+				menuTxt.removeText(2);
+				menuTxt.removeText(3);
+				menuTxt.removeText(4);
+		        reset();
+		        state = AppState::Menu;
+		        std::cout << "Return to Menu...!\n";
+		        RebuildPipeline();
+		        return;
+		    }
+		    // Start timer
+		    if (!gameStarted) {
+		        gameStartTime = std::chrono::high_resolution_clock::now();
+		        gameStarted   = true;
+		    }
+		    // Calculate remaining game time
+		    float elapsed = std::chrono::duration<float>(
+		        std::chrono::high_resolution_clock::now() - gameStartTime).count();
+				gameTime = std::max(0.0f, 300.0f - elapsed
+			);
+			if (gameTime < 0.1f) {
+			    seenCenter = false;
+			    seenFollow = false;
+			    seenDrone  = true;
+			}
 
-	if (gameTime < 0.1f) {
-    seenCenter = false;
-    seenFollow = false;
-    seenDrone  = true;  
-}
+		    // Input drone and collisions (checkRingPassage inside)
+		    float deltaT; glm::vec3 m, r; bool fire=false;
+		    getSixAxis(deltaT, m, r, fire);
+		    totalElapsedTime += deltaT;
+		    getDroneInput(window, deltaT);
+		    setCameraMode(window);
 
-    // 1.c) Input drone + collisioni (checkRingPassage inside)
-    float deltaT; glm::vec3 m, r; bool fire=false;
-    getSixAxis(deltaT, m, r, fire);
-    totalElapsedTime += deltaT;
-    getDroneInput(window, deltaT);
-    setCameraMode(window);
+			// Ring collision detection
+			int passedCount = std::count(ringPassed.begin(), ringPassed.end(), true);
+			int totalSec    = static_cast<int>(std::ceil(gameTime));
 
-    // 1.d) Conteggio anelli + tempo in secondi interi
-int passedCount = std::count(ringPassed.begin(), ringPassed.end(), true);
-int totalSec    = static_cast<int>(std::ceil(gameTime));
+			// Update HUD only if there are changes
+			if (passedCount != lastPassedCount || totalSec != lastTotalSec) {
+			    lastPassedCount = passedCount;
+			    lastTotalSec    = totalSec;
 
-// 1.e) Aggiorna HUD solo se cambia qualcosa
-if (passedCount != lastPassedCount || totalSec != lastTotalSec) {
-    lastPassedCount = passedCount;
-    lastTotalSec    = totalSec;
+			    // Write in buffer: "Rings: XX/10 Time: MM:SS"
+			    int mins = totalSec / 60;
+			    int secs = totalSec % 60;
+			    // snprintf is faster and write exactly the number of characters needed
+			    std::snprintf(hudBuffer, sizeof(hudBuffer),
+			                  "Rings: %2d/10   Time: %02d:%02d",
+			                  passedCount, mins, secs);
 
-    // Scrivi direttamente nel buffer: "Rings: XX/10   Time: MM:SS"
-    int mins = totalSec / 60;
-    int secs = totalSec % 60;
-    // snprintf è rapido e scrive sempre esattamente i caratteri modificati
-    std::snprintf(hudBuffer, sizeof(hudBuffer),
-                  "Rings: %2d/10   Time: %02d:%02d",
-                  passedCount, mins, secs);
+			    // Remove old text and print new one
+			    menuTxt.removeText(HUD_ID);
+			    menuTxt.print(
+			        0.0f, 0.85f,
+			        hudBuffer,
+			        HUD_ID, "SS",
+			        false, true, false,
+			        TAL_CENTER, TRH_CENTER, TRV_TOP,
+			        {1.0f,0.98f,0.9f,1.0f}, {0.2f, 0.2f, 0.2f, 1.0f}
+			    );
+			    menuTxt.updateCommandBuffer();
+			}
 
-    // Rimuovi vecchio e stampalo
-    menuTxt.removeText(HUD_ID);
-    menuTxt.print(
-        0.0f, 0.90f,
-        hudBuffer,
-        HUD_ID, "SS",
-        false, true, false,
-        TAL_CENTER, TRH_CENTER, TRV_TOP,
-        {1,1,1,1}, {0,0,0,1}
-    );
-    menuTxt.updateCommandBuffer();
-}
+		    // Verify gameOver
+		    if (gameTime <= 0.0f) {
+		        gameOver = -1.0f;
+		        UBO_overlay[2].visible = true;
+				menuTxt.removeText(2);
+				menuTxt.removeText(3);
+				menuTxt.removeText(4);
+		        state = AppState::GameOver;
+		    } else if (passedCount == static_cast<int>(ringPassed.size())) {
+		        gameOver = 1.0f;
+		        UBO_overlay[1].visible = true;
+				menuTxt.removeText(2);
+				menuTxt.removeText(3);
+				menuTxt.removeText(4);
+		        state = AppState::GameOver;
+		    }
 
-    // 1.f) Verifica GameOver
-    if (gameTime <= 0.0f) {
-        gameOver = -1.0f;
-        UBO_overlay[2].visible = true;
-		menuTxt.removeText(2);
-		menuTxt.removeText(3);
-		menuTxt.removeText(4);
-        state = AppState::GameOver;
-    } else if (passedCount == static_cast<int>(ringPassed.size())) {
-        gameOver = 1.0f;
-        UBO_overlay[1].visible = true;
-		menuTxt.removeText(2);
-		menuTxt.removeText(3);
-		menuTxt.removeText(4);
-        state = AppState::GameOver;
-    }
+		    // ESC to menu
+		    if (escPressed) {
+		        reset();
+		        state = AppState::Menu;
+		        RebuildPipeline();
+		    }
+		}
 
-    // 1.g) ESC torna a Menu
-    if (escPressed) {
-        reset();
-        state = AppState::Menu;
-        RebuildPipeline();
-    }
-}
+		// ─── 2) SWITCH on remaining states ───────────────────────────────
+		switch (state) {
+			case AppState::Menu:
+				// bind overlay menu
+				for (int i = 0; i < 3; ++i)
+					DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
 
-// ─── 2) SWITCH sui restanti stati ───────────────────────────────
-switch (state) {
-  case AppState::Menu:
-    // bind overlay menu
-    for (int i = 0; i < 3; ++i)
-        DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
+			    if (hPressed) {
+					// print help menu
+			    	menuTxt.print(0, 0.95f,
+						"Find and pass through all the rings to win the game\n"
+						"Press [C] to close this text",
+						2, "SS",
+						true, false, false,
+						TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+						{0,0,0,1},
+						{0, 0, 0, 0}
+					);
+					menuTxt.updateCommandBuffer();
+			    } else if (cPressed) {
+					menuTxt.removeText(2);
+			    	menuTxt.updateCommandBuffer();
+			    } else if (enterPressed) {
+					menuTxt.removeText(1);
+				    menuTxt.removeText(2);
+				    reset();
 
-    if (hPressed) {
-      // stampa help…
-      menuTxt.updateCommandBuffer();
-    } else if (cPressed) {
-      menuTxt.removeText(2);
-    } else if (enterPressed) {
-      menuTxt.removeText(1);
-    menuTxt.removeText(2);
-    reset();
+				    UBO_overlay[0].visible = false;
+				    UBO_overlay[1].visible = false;
+				    UBO_overlay[2].visible = false;
 
-    // Nascondi il menu overlay proprio adesso:
-    UBO_overlay[0].visible = false;
-    UBO_overlay[1].visible = false;
-    UBO_overlay[2].visible = false;
-    // (assicurati poi di mappare questi UBO, se necessario)
+				    state = AppState::Playing;
+				    showStartText = true;
+				    RebuildPipeline();
+			    } else if (escPressed) {
+			    	glfwSetWindowShouldClose(window, GLFW_TRUE);
+			    }
+			break;
 
-    state = AppState::Playing;
-    showStartText = true;
-    RebuildPipeline();
-    } else if (escPressed) {
-      glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
-    break;
+			case AppState::GameOver:
+  				seenCenter = false;
+				seenFollow = false;
+				seenDrone  = true;
 
-  case AppState::GameOver:
-  	seenCenter = false;
-    seenFollow = false;
-    seenDrone  = true;
-    // bind overlay win/lose
-    for (int i = 0; i < 3; ++i)
-        DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
+				// bind overlay win/lose
+				for (int i = 0; i < 3; ++i)
+					DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
 
-    if (bPressed) {
-      reset();
-      state = AppState::Menu;
-      RebuildPipeline();
-    }
-    break;
+			    if (bPressed) {
+			    	reset();
+					state = AppState::Menu;
+					RebuildPipeline();
+			    }
+			break;
 
-  default: break;
-}
+			default: break;
+		}
 
-    // ─── 3) Calcolo delle matrici di vista e proiezione ───────────────
-    glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
-    proj[1][1] *= -1;
+	    // ─── View and proj matrix ───────────────
+	    glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
+	    proj[1][1] *= -1;
 
-    glm::mat4 view;
-    // (ricalcola view esattamente come prima, in base a seenCenter/seenFollow/seenDrone)
-    if (seenCenter) {
-        glm::vec3 offset = glm::vec3(0, 0, 6.4f * DRONE_SCALE);
-        glm::mat4 R = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
-                    * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
-                    * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1));
-        glm::vec3 camP = global_pos_drone + glm::vec3(R * glm::vec4(offset,0.0f));
-        glm::vec3 up  = glm::normalize(glm::vec3(R * glm::vec4(0,1,0,0)));
-        view = glm::lookAt(camP, global_pos_drone, up);
-    }
-    else if (seenFollow) {
-        glm::vec3 camP = global_pos_drone + glm::vec3(0, 4.0f*DRONE_SCALE, 1.5f*DRONE_SCALE);
-        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
-    }
-    else {
-        // seenDrone
-        glm::vec3 camP = global_pos_drone + glm::vec3(
-            glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0))
-            * glm::vec4(0, 1.5f*DRONE_SCALE, 0, 1));
-        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
-    }
+	    glm::mat4 view;
+	    if (seenCenter) {
+	        glm::vec3 offset = glm::vec3(0, 0, 6.4f * DRONE_SCALE);
+	        glm::mat4 R = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
+	                    * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
+	                    * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1));
+	        glm::vec3 camP = global_pos_drone + glm::vec3(R * glm::vec4(offset,0.0f));
+	        glm::vec3 up  = glm::normalize(glm::vec3(R * glm::vec4(0,1,0,0)));
+	        view = glm::lookAt(camP, global_pos_drone, up);
+	    }
+	    else if (seenFollow) {
+	        glm::vec3 camP = global_pos_drone + glm::vec3(0, 4.0f*DRONE_SCALE, 1.5f*DRONE_SCALE);
+	        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
+	    }
+	    else {
+	        // seenDrone
+	        glm::vec3 camP = global_pos_drone + glm::vec3(
+	            glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0))
+	            * glm::vec4(0, 1.5f*DRONE_SCALE, 0, 1));
+	        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
+	    }
 
-    // ─── 4) AGGIORNO UBO GLOBALI ───────────────────────────────────────
-    GUBO.proj       = proj;
-    GUBO.view       = view;
-    GUBO.cameraPos  = CamPos = glm::vec3(glm::inverse(view)[3]);
-    GUBO.lightDir   = glm::normalize(glm::vec3(0,1,0));
-    GUBO.time       = totalElapsedTime;
-    updateGlobalUBO(GUBO, totalElapsedTime);
-    DS_global.map(currentImage, &GUBO, 0);
+	    // ─── Global UBO ───────────────────────────────────────
+	    GUBO.proj       = proj;
+	    GUBO.view       = view;
+	    GUBO.cameraPos  = CamPos = glm::vec3(glm::inverse(view)[3]);
+	    GUBO.lightDir   = glm::normalize(glm::vec3(0,1,0));
+	    GUBO.time       = totalElapsedTime;
+	    updateGlobalUBO(GUBO, totalElapsedTime);
+	    DS_global.map(currentImage, &GUBO, 0);
 
-// ─── 5) UBOs Montagna ─────────────────────────────────────────────
-for (int i = 0; i < SC.TI[0].InstanceCount; ++i) {
-    ubos.mMat   = SC.TI[0].I[i].Wm;
-    ubos.mvpMat = proj * view * ubos.mMat;
-    ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
-    // Mappa prima il GUBO (set 0), poi ubos (set 1):
-    SC.TI[0].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
-    SC.TI[0].I[i].DS[0][1]->map(currentImage, &ubos, 0);
-}
+		// ─── UBOs Mountain ─────────────────────────────────────────────
+		for (int i = 0; i < SC.TI[0].InstanceCount; ++i) {
+		    ubos.mMat   = SC.TI[0].I[i].Wm;
+		    ubos.mvpMat = proj * view * ubos.mMat;
+		    ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+		    // Mappa prima il GUBO (set 0), poi ubos (set 1):
+		    SC.TI[0].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
+		    SC.TI[0].I[i].DS[0][1]->map(currentImage, &ubos, 0);
+		}
 
-// ─── 6) UBOs Stazione ────────────────────────────────────────────
-for (int i = 0; i < SC.TI[1].InstanceCount; ++i) {
-    ubosStart.mMat   = SC.TI[1].I[i].Wm;
-    ubosStart.mvpMat = proj * view * ubosStart.mMat;
-    ubosStart.nMat   = glm::inverse(glm::transpose(ubosStart.mMat));
-    // Anche qui, prima GUBO poi ubosStart:
-    SC.TI[1].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
-    SC.TI[1].I[i].DS[0][1]->map(currentImage, &ubosStart, 0);
-}
+		// ─── UBO Station ────────────────────────────────────────────
+		for (int i = 0; i < SC.TI[1].InstanceCount; ++i) {
+		    ubosStart.mMat   = SC.TI[1].I[i].Wm;
+		    ubosStart.mvpMat = proj * view * ubosStart.mMat;
+		    ubosStart.nMat   = glm::inverse(glm::transpose(ubosStart.mMat));
+		    // Anche qui, prima GUBO poi ubosStart:
+		    SC.TI[1].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
+		    SC.TI[1].I[i].DS[0][1]->map(currentImage, &ubosStart, 0);
+		}
 
-    // ─── 7) UBO Drone ────────────────────────────────────────────────
-    {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), global_pos_drone)
-                        * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
-                        * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
-                        * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1))
-                        * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0))
-                        * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
-        UBO_drone.mvpMat = proj * view * model;
-        UBO_drone.mMat   = model;
-        UBO_drone.nMat   = glm::inverse(glm::transpose(model));
-        DS_drone.map(currentImage, &UBO_drone, 0);
-    }
+	    // ─── UBO Drone ────────────────────────────────────────────────
+	    {
+	        glm::mat4 model = glm::translate(glm::mat4(1.0f), global_pos_drone)
+	                        * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
+	                        * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
+	                        * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1))
+	                        * glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0,1,0))
+	                        * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+	        UBO_drone.mvpMat = proj * view * model;
+	        UBO_drone.mMat   = model;
+	        UBO_drone.nMat   = glm::inverse(glm::transpose(model));
+	        DS_drone.map(currentImage, &UBO_drone, 0);
+	    }
 
-    // ─── 8) UBO SkyBox ───────────────────────────────────────────────
-    {
-        glm::mat4 skyModel = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1,0,0))
-                           * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
-        UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view)) * skyModel;
-        DS_skyBox.map(currentImage, &UBO_skyBox, 0);
-    }
-}
-
+	    // ─── UBO SkyBox ───────────────────────────────────────────────
+	    {
+	        glm::mat4 skyModel = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1,0,0))
+	                           * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
+	        UBO_skyBox.mvpMat = proj * glm::mat4(glm::mat3(view)) * skyModel;
+	        DS_skyBox.map(currentImage, &UBO_skyBox, 0);
+	    }
+	}
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -1015,7 +1020,6 @@ for (int i = 0; i < SC.TI[1].InstanceCount; ++i) {
 	    if(glfwGetKey(w, GLFW_KEY_E))     droneRoll  += deltaT * ROT_SPEED;
 
 		// traslations
-		// Movement
 		glm::mat4 R_yaw = glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0));
 		glm::vec3 forward = glm::vec3(R_yaw * glm::vec4(0,0,-1,0));
 		glm::vec3 right   = glm::vec3(R_yaw * glm::vec4(1,0, 0,0));
@@ -1105,7 +1109,7 @@ for (int i = 0; i < SC.TI[1].InstanceCount; ++i) {
 		droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 
 		ringPassed = std::vector<bool>(10, false);
-		 // Resetta il timer
+		// Timer reset
 		gameTime = 300.0f;
 		gameStarted = false;
 		lastPassedCount = -1;
