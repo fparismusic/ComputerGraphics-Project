@@ -723,7 +723,7 @@ menuTxt.print(
   {1, 1, 1, 1},
   {0, 0, 0, 1.0f}  
 );
-menuTxt.print(-0.95f, -0.65f,
+menuTxt.print(-0.95f, -0.52f,
         "Move with W-A-S-D | Q-E | R-F\n"
         "Move arrows to look around\n"
         "Change camera with I-O-P\n"
@@ -808,7 +808,7 @@ if (state == AppState::Playing) {
         menuTxt.print(0.0f, 0.90f, hud, HUD_ID, "SS",
                       false, true, false,
                       TAL_CENTER, TRH_CENTER, TRV_TOP,
-                      {1,1,1,1}, {0.2f,0.2f,0.2f,0.7f});
+                      {1,1,1,1}, {0,0,0,1});
         menuTxt.updateCommandBuffer();
 		
     }
