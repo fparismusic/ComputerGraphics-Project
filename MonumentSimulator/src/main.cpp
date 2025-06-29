@@ -714,6 +714,26 @@ void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
     vkCmdDrawIndexed(commandBuffer,
         static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0
     );
+menuTxt.print(
+  -0.95f, -0.8f,   
+  "Filippo Paris\nFrancesco Moretti\nMoein Zadeh",
+  3, "CO",
+  false, true, false,
+  TAL_LEFT, TRH_LEFT, TRV_BOTTOM,   
+  {1, 1, 1, 1},
+  {0, 0, 0, 1.0f}  
+);
+menuTxt.print(-0.95f, -0.65f,
+        "Move with W-A-S-D | Q-E | R-F\n"
+        "Move arrows to look around\n"
+        "Change camera with I-O-P\n"
+        "Press ESC to return to the menu",
+        4, "SS",
+        false, true, true,
+        TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
+        {1,0.99,0.99f,1}, 
+		{0,0,0,1.0f}
+        );
 
     RP.end(commandBuffer);
 }
@@ -730,7 +750,7 @@ void updateUniformBuffer(uint32_t currentImage)
 		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
 		bool bPressed   = glfwGetKey(window, GLFW_KEY_B)      == GLFW_PRESS;
 		bool enterPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
-		// Detect solo il fronte di salita
+
 		bool escJustPressed = escPressed && !prevEscPressed;
 		const float DRONE_SCALE = 0.065f;
 
@@ -739,6 +759,8 @@ if (state == AppState::Playing) {
 	if (escJustPressed) {
         // una sola volta al momento in cui premi ESC
 		menuTxt.removeText(2);
+		menuTxt.removeText(3);
+		menuTxt.removeText(4);
         reset();
         state = AppState::Menu;
         std::cout << "Return to Menu...!\n";
@@ -796,11 +818,15 @@ if (state == AppState::Playing) {
         gameOver = -1.0f;
         UBO_overlay[2].visible = true;
 		menuTxt.removeText(2);
+		menuTxt.removeText(3);
+		menuTxt.removeText(4);
         state = AppState::GameOver;
     } else if (passedCount == static_cast<int>(ringPassed.size())) {
         gameOver = 1.0f;
         UBO_overlay[1].visible = true;
 		menuTxt.removeText(2);
+		menuTxt.removeText(3);
+		menuTxt.removeText(4);
         state = AppState::GameOver;
     }
 
