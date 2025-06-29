@@ -117,7 +117,10 @@ protected:
 
 	// --- HUD tracking variables ---
 	int lastPassedCount = -1;  // Per tracciare quando cambia il conteggio degli anelli
+	int lastTotalSec    = -1;
+	char hudBuffer[32];    // buffer abbastanza grande
 	std::string lastTimeStr = "";  // Per tracciare quando cambia il tempo
+	int HUD_ID = 2;
 
 	// --- Drone parameters ---
 	bool seenCenter   = true;
@@ -790,28 +793,35 @@ if (state == AppState::Playing) {
     getDroneInput(window, deltaT);
     setCameraMode(window);
 
-    // 1.d) Conteggio anelli + formattazione timer
-    int passedCount = std::count(ringPassed.begin(), ringPassed.end(), true);
-    int totalSec    = static_cast<int>(std::ceil(gameTime));
-    char timeStr[6];
-    std::snprintf(timeStr, sizeof(timeStr), "%02d:%02d",
-                  totalSec/60, totalSec%60);
+    // 1.d) Conteggio anelli + tempo in secondi interi
+int passedCount = std::count(ringPassed.begin(), ringPassed.end(), true);
+int totalSec    = static_cast<int>(std::ceil(gameTime));
 
-    // 1.e) Aggiorna HUD se cambia
-    if (passedCount != lastPassedCount || std::string(timeStr) != lastTimeStr) {
-        lastPassedCount = passedCount;
-        lastTimeStr     = timeStr;
-        std::string hud = "Rings: " + std::to_string(passedCount)
-                        + "/10   Time: " + timeStr;
-        constexpr int HUD_ID = 2;
-        menuTxt.removeText(HUD_ID);
-        menuTxt.print(0.0f, 0.90f, hud, HUD_ID, "SS",
-                      false, true, false,
-                      TAL_CENTER, TRH_CENTER, TRV_TOP,
-                      {1,1,1,1}, {0,0,0,1});
-        menuTxt.updateCommandBuffer();
-		
-    }
+// 1.e) Aggiorna HUD solo se cambia qualcosa
+if (passedCount != lastPassedCount || totalSec != lastTotalSec) {
+    lastPassedCount = passedCount;
+    lastTotalSec    = totalSec;
+
+    // Scrivi direttamente nel buffer: "Rings: XX/10   Time: MM:SS"
+    int mins = totalSec / 60;
+    int secs = totalSec % 60;
+    // snprintf è rapido e scrive sempre esattamente i caratteri modificati
+    std::snprintf(hudBuffer, sizeof(hudBuffer),
+                  "Rings: %2d/10   Time: %02d:%02d",
+                  passedCount, mins, secs);
+
+    // Rimuovi vecchio e stampalo
+    menuTxt.removeText(HUD_ID);
+    menuTxt.print(
+        0.0f, 0.90f,
+        hudBuffer,
+        HUD_ID, "SS",
+        false, true, false,
+        TAL_CENTER, TRH_CENTER, TRV_TOP,
+        {1,1,1,1}, {0,0,0,1}
+    );
+    menuTxt.updateCommandBuffer();
+}
 
     // 1.f) Verifica GameOver
     if (gameTime <= 0.0f) {
