@@ -741,14 +741,17 @@ std::vector<glm::mat4>  originalRingWm;
 	    SC.populateCommandBuffer(commandBuffer, 0, currentImage);
 
 	    // --- HUD ---
-	    P_overlay.bind(commandBuffer);
-	    for (int i = 0; i < 3; i++) {
-	        M_overlay[i].bind(commandBuffer);
-	        DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
-	        vkCmdDrawIndexed(commandBuffer,
-	            static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0
-	        );
-	    }
+		// --- HUD ---
+		P_overlay.bind(commandBuffer);
+		for (int i = 0; i < 3; i++) {
+			if (!UBO_overlay[i].visible) continue;  // <— Only draw if visible
+			M_overlay[i].bind(commandBuffer);
+			DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(M_overlay[i].indices.size()), 1, 0, 0, 0
+			);
+		}
+
 
 	    // --- skybox ---
 	    P_skyBox.bind(commandBuffer);
