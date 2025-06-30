@@ -744,7 +744,6 @@ std::vector<glm::mat4>  originalRingWm;
 		// --- HUD ---
 		P_overlay.bind(commandBuffer);
 		for (int i = 0; i < 3; i++) {
-			if (!UBO_overlay[i].visible) continue;  // <— Only draw if visible
 			M_overlay[i].bind(commandBuffer);
 			DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
