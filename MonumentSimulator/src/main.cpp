@@ -37,9 +37,9 @@ void loadMountainPoints(std::vector<glm::vec3>& points) {
 	// Define transforms for the 4 mountains
 	std::vector<std::pair<glm::vec3, float>> transforms = {
 		{{0, 150, 0}, 0.0f},
-		{{-2000, 150, 0}, 180.0f},
-		{{-2000, 150, -2000}, 180.0f},
-		{{0, 150, -2000}, 0.0f}
+		{{-1960, 145, 0}, 180.0f},
+		{{-1960, 150, -1960}, 180.0f},
+		{{0, 145, -1960}, 0.0f}
 	};
 
 	float scale = 2000.0f;
