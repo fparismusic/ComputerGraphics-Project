@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include <json.hpp>
+#include <random>
 
 #include "modules/Starter.hpp"
 #include "modules/TextMaker.hpp"
@@ -66,22 +67,7 @@ bool isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mo
 	return false;
 }
 
-float checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius = 10.0f) {
-	float res = 0.0f;
-	for (size_t i = 0; i < rings.size(); ++i) {
-		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
-			passed[i] = true;
-			std::cout << "Great, Ring " << (i + 1) << " passed!" << std::endl;
-		}
-	}
 
-	// Check for game completion
-	if (std::all_of(passed.begin(), passed.end(), [](bool b) { return b; })) {
-		std::cout << "All rings passed! Game complete!" << std::endl;
-		res =  1.0f;
-	}
-	return res;
-}
 //-----------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------
 // --- Game States ---
@@ -210,6 +196,9 @@ protected:
 	// Flags to track which rings were passed
 	std::vector<bool> ringPassed = std::vector<bool>(10, false);
 
+std::vector<float>      ringScale;       // scala di ciascun anello
+std::vector<glm::mat4>  originalRingWm; 
+
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -241,6 +230,26 @@ protected:
 		// updates the textual output
 		menuTxt.resizeScreen(w, h);
 	}
+
+	float checkRingPassage(glm::vec3 dronePos,
+                       std::vector<glm::vec3>& rings,
+                       std::vector<bool>& passed,
+                       float radius = 10.0f)
+{
+    float res = 0.0f;
+    for (size_t i = 0; i < rings.size(); ++i) {
+        if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
+            passed[i] = true;
+            ringScale[i] = 0.0f;                   // <— sparisce!
+            std::cout << "Great, Ring " << (i + 1) << " passed!" << std::endl;
+        }
+    }
+    if (std::all_of(passed.begin(), passed.end(), [](bool b){ return b; })) {
+        std::cout << "🎉 All rings passed! Game complete!" << std::endl;
+        res = 1.0f;
+    }
+    return res;
+}
 
 	//************************************************************************************************
 	//************************************************************************************************
@@ -457,7 +466,41 @@ protected:
 			std::cout << "ERROR LOADING THE SCENE\n";
 			exit(0);
 		}
+		size_t totalInstances = SC.TI[0].InstanceCount;
+    size_t firstRingIndex = 4;                           // le prime 4 istanze sono le montagne
+    size_t numRings       = totalInstances - firstRingIndex;
 
+    // Scala iniziale = 1.0, Wm originale vuoto
+    ringScale      = std::vector<float>(numRings, 1.0f);
+    originalRingWm = std::vector<glm::mat4>(numRings);
+
+    // Generatore di yaw casuale
+    std::mt19937                         rng{ std::random_device{}() };
+    std::uniform_real_distribution<float> yawDistr(-180.0f, 180.0f);
+
+    for (size_t r = 0; r < numRings; ++r) {
+        int j = int(firstRingIndex + r);
+
+        // Estrai la Wm che hai già costruito (T * R(-90,0,0) * S(2,2,2))
+        glm::mat4 base = SC.TI[0].I[j].Wm;
+
+        // Genera un yaw casuale
+        float randomYaw = glm::radians(yawDistr(rng));
+
+        // Costruisci una matrice che
+        //  1) trasla al pivot originale,
+        //  2) ruota attorno a Y di randomYaw,
+        //  3) riapplica la Wm di base (che contiene già la tua rotazione -90 sull’asse X e la scala)
+        glm::vec3 pivot = glm::vec3(base[3]);   // la colonna 3 è la posizione
+        glm::mat4 R = glm::translate(glm::mat4(1.0f), pivot)
+                    * glm::rotate   (glm::mat4(1.0f), randomYaw, glm::vec3(0,1,0))
+                    * glm::translate(glm::mat4(1.0f), -pivot)
+                    * base;
+
+        // Salva il “baked” e applichiamolo come Wm corrente
+        originalRingWm[r]            = R;
+        SC.TI[0].I[j].Wm = R;
+    }
 		// INIT TEXT
 		cout << "Initializing text\n";
 		menuTxt.init(this, windowWidth, windowHeight);
@@ -939,6 +982,14 @@ protected:
 	    updateGlobalUBO(GUBO, totalElapsedTime);
 	    DS_global.map(currentImage, &GUBO, 0);
 
+		// 5bis) Appiattisco i ring “collezionati”
+for (int j = 4; j < SC.TI[0].InstanceCount; ++j) {
+    int ringIdx = j - 4;
+    float s = ringScale[ringIdx];  // 1 = visibile, 0 = sparito
+    SC.TI[0].I[j].Wm =
+        originalRingWm[ringIdx]
+      * glm::scale(glm::mat4(1.0f), glm::vec3(s));
+}
 		// ─── UBOs Mountain ─────────────────────────────────────────────
 		for (int i = 0; i < SC.TI[0].InstanceCount; ++i) {
 		    ubos.mMat   = SC.TI[0].I[i].Wm;
@@ -1054,7 +1105,7 @@ protected:
 		global_pos_drone.y = glm::clamp(global_pos_drone.y, minY, maxY);
 		global_pos_drone.z = glm::clamp(global_pos_drone.z, minZ, maxZ);
 
-		gameOver = checkRingPassage(global_pos_drone, ringPositions, ringPassed);
+		gameOver = this->checkRingPassage(global_pos_drone, ringPositions, ringPassed);
 
 		if (glfwGetKey(w, GLFW_KEY_P) == GLFW_PRESS) {
 			std::cout << "Drone Position: "
