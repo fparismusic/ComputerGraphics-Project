@@ -784,16 +784,7 @@ void BaseProject::initWindow() {
 
 	window = glfwCreateWindow(windowWidth, windowHeight, windowTitle.c_str(), nullptr, nullptr);
 
-	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-	glfwSetWindowMonitor(
-		window,
-		monitor,
-		0, 0,
-		mode->width,
-		mode->height,
-		mode->refreshRate
-	);
+	
 
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
