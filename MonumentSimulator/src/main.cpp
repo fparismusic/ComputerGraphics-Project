@@ -90,8 +90,8 @@ protected:
 	bool prevEscPressed = false;
 
 	// --- Difficulty parameter --
-	enum class Difficulty { Easy, Normal, Hard };
-    Difficulty currentDifficulty = Difficulty::Normal;
+	enum class Difficulty { Easy, Medium, Hard };
+    Difficulty currentDifficulty = Difficulty::Medium;
 	
 	// --- Window parameters ---
 	float Ar; // Aspect Ratio
@@ -518,7 +518,7 @@ std::vector<glm::mat4>  originalRingWm;
 		menuTxt.print(0.0f, 0.95f, "[ENTER] Start Simulation\n[S] Show Help & Controls\n[ESC] Exit\n",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,1.0f,1.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 		const char* diffLabel =
     currentDifficulty==Difficulty::Easy   ? "Easy (6 minutes)" :
-    currentDifficulty==Difficulty::Normal? "Normal (5 minutes)" :
+    currentDifficulty==Difficulty::Medium? "Medium (5 minutes)" :
                                           "Hard (4 minutes)";
 menuTxt.print(
   1.0f, 0.9f,
@@ -699,9 +699,9 @@ menuTxt.print(
 	        );
 			 const char* diffText = "";
         switch (currentDifficulty) {
-          case Difficulty::Easy:   diffText = "Difficulty: Easy (6 min)";   break;
-          case Difficulty::Normal: diffText = "Difficulty: Normal (5 min)"; break;
-          case Difficulty::Hard:   diffText = "Difficulty: Hard (4 min)";   break;
+          case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)";   break;
+          case Difficulty::Medium: diffText = "Difficulty: Medium (5 minutes)"; break;
+          case Difficulty::Hard:   diffText = "Difficulty: Hard (4 minutes)";   break;
         }
         menuTxt.print(
             0.0f, 0.90f,
@@ -824,7 +824,7 @@ menuTxt.print(
 	{
 		bool escPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
 		bool ePressed   = glfwGetKey(window, GLFW_KEY_E)      == GLFW_PRESS;
-		bool nPressed   = glfwGetKey(window, GLFW_KEY_N)      == GLFW_PRESS;
+		bool mPressed   = glfwGetKey(window, GLFW_KEY_M)      == GLFW_PRESS;
 		bool hPressed   = glfwGetKey(window, GLFW_KEY_H)      == GLFW_PRESS;
 		bool sPressed   = glfwGetKey(window, GLFW_KEY_S)      == GLFW_PRESS;
 		bool cPressed   = glfwGetKey(window, GLFW_KEY_C)      == GLFW_PRESS;
@@ -943,7 +943,7 @@ menuTxt.print(
         0.0f, 0.92f,   // bottom‐center
         "Find and collect all the rings to win the game!\n"
 		"Move with W-A-S-D / Q-E / R-F | Move arrows to look around | Change camera with I / O / P\n"
-		"To choose the difficulty, press: [E] Easy, [N] Normal, [H] Hard\n"
+		"To choose the difficulty, press: [E] Easy, [M] Medium, [H] Hard\n"
         "Press [C] to close this text",
         3, "SS",
         true, true, false,
@@ -959,7 +959,7 @@ menuTxt.print(
       const char* diffText = "";
       switch (currentDifficulty) {
         case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)"; break;
-        case Difficulty::Normal: diffText = "Difficulty: Normal (5 minutes)"; break;
+        case Difficulty::Medium: diffText = "Difficulty: Medium (5 minutes)"; break;
         case Difficulty::Hard:   diffText = "Difficulty: Hard (4 minutes)"; break;
       }
       menuTxt.print(
@@ -988,14 +988,14 @@ menuTxt.print(
       );
       menuTxt.updateCommandBuffer();
     }
-    else if (nPressed) {
-      // N: set Normal
-      currentDifficulty = Difficulty::Normal;
+    else if (mPressed) {
+      // M: set Medium
+      currentDifficulty = Difficulty::Medium;
       menuTxt.removeText(2);
 	  menuTxt.removeText(3);
       menuTxt.print(
         0.0f, 0.90f,
-        "Difficulty: Normal (5 minutes)",
+        "Difficulty: Medium (5 minutes)",
         2, "SS",
         true, false, false,
         TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
@@ -1027,7 +1027,7 @@ menuTxt.print(
       // set the gameTime once, based on difficulty
       switch (currentDifficulty) {
         case Difficulty::Easy:   initialGameDuration = 6 * 60.0f; break;
-        case Difficulty::Normal: initialGameDuration = 5 * 60.0f; break;
+        case Difficulty::Medium: initialGameDuration = 5 * 60.0f; break;
         case Difficulty::Hard:   initialGameDuration = 4 * 60.0f; break;
       }
       gameTime    = initialGameDuration;
