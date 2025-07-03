@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(MonumentSimulator C CXX)
+project(DroneSimulator C CXX)
 
 # Enable C and C++ languages
 enable_language(C)
@@ -33,15 +33,15 @@ if(APPLE)
     file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
     # Define the project executable
-    add_executable(MonumentSimulator ${SOURCES} ${HEADERS})
+    add_executable(DroneSimulator ${SOURCES} ${HEADERS})
 
     # Include directories
-    target_include_directories(MonumentSimulator PRIVATE ${GLM_INCLUDE_DIRS})
-    target_include_directories(MonumentSimulator PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_include_directories(MonumentSimulator PUBLIC ${Vulkan_INCLUDE_DIR})
+    target_include_directories(DroneSimulator PRIVATE ${GLM_INCLUDE_DIRS})
+    target_include_directories(DroneSimulator PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_include_directories(DroneSimulator PUBLIC ${Vulkan_INCLUDE_DIR})
 
     # Link libraries
-    target_link_libraries(MonumentSimulator PRIVATE Vulkan::Vulkan glfw Threads::Threads)
+    target_link_libraries(DroneSimulator PRIVATE Vulkan::Vulkan glfw Threads::Threads)
 
     # Shader setup for macOS
     file(GLOB SPIRV_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
@@ -82,7 +82,7 @@ if(APPLE)
     add_custom_target(Shaders_1 DEPENDS ${SPIRV_SOURCE_FILES})
 
     # Ensure that depends on the SPIR-V files
-    add_dependencies(MonumentSimulator Shaders_1)
+    add_dependencies(DroneSimulator Shaders_1)
 
     # Copy resources (textures, models, etc.) to the build directory
     file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)
