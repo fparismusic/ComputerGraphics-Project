@@ -927,116 +927,92 @@ menuTxt.print(
 		// ─── 2) SWITCH on remaining states ───────────────────────────────
 		switch (state) {
   case AppState::Menu:
-    // always bind the overlay textures
-    for (int i = 0; i < 3; ++i)
-      DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
+  // bind degli overlay
+  for (int i = 0; i < 3; ++i)
+    DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
 
-	  if (escPressed) {
-      glfwSetWindowShouldClose(window, GLFW_TRUE);
-      break;
-    }
-    // ---- handle input ----
-    if (sPressed) {
-      // S: hide difficulty (ID 2), show controls (ID 3)
-      menuTxt.removeText(2);
-      menuTxt.print(
-        0.0f, 0.92f,   // bottom‐center
-        "Find and collect all the rings to win the game!\n"
-		"Move with W-A-S-D / Q-E / R-F | Move arrows to look around | Change camera with I / O / P\n"
-		"To choose the difficulty, press: [E] Easy, [M] Medium, [H] Hard\n"
-        "Press [C] to close this text",
-        3, "SS",
-        true, true, false,
-        TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-        {0,0,0,1}, {0,0,0,0}
-      );
-      menuTxt.updateCommandBuffer();
-    }
-    else if (cPressed) {
-      // C: hide controls (ID 3), show difficulty (ID 2)
-      menuTxt.removeText(3);
-      // re‐print difficulty
-      const char* diffText = "";
-      switch (currentDifficulty) {
-        case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)"; break;
-        case Difficulty::Medium: diffText = "Difficulty: Medium (5 minutes)"; break;
-        case Difficulty::Hard:   diffText = "Difficulty: Hard (4 minutes)"; break;
-      }
-      menuTxt.print(
-        0.0f, 0.90f,
-        diffText,
-        2, "SS",
-        true, false, false,
-        TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-        {0,0,0,1}, {0,0,0,0}
-      );
-      menuTxt.updateCommandBuffer();
-    }
-    else if (ePressed) {
-      // E: set Easy
-      currentDifficulty = Difficulty::Easy;
-      // refresh the difficulty text if visible
-      menuTxt.removeText(2);
-	  menuTxt.removeText(3);
-      menuTxt.print(
-        0.0f, 0.90f,
-        "Difficulty: Easy (6 minutes)",
-        2, "SS",
-        true, false, false,
-        TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-        {0,0,0,1}, {0,0,0,0}
-      );
-      menuTxt.updateCommandBuffer();
-    }
-    else if (mPressed) {
-      // M: set Medium
-      currentDifficulty = Difficulty::Medium;
-      menuTxt.removeText(2);
-	  menuTxt.removeText(3);
-      menuTxt.print(
-        0.0f, 0.90f,
-        "Difficulty: Medium (5 minutes)",
-        2, "SS",
-        true, false, false,
-        TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-        {0,0,0,1}, {0,0,0,0}
-      );
-      menuTxt.updateCommandBuffer();
-    }
-    else if (hPressed) {
-      // H: set Hard
-      currentDifficulty = Difficulty::Hard;
-      menuTxt.removeText(2);
-	  menuTxt.removeText(3);
-      menuTxt.print(
-        0.0f, 0.90f,
-        "Difficulty: Hard (4 minutes)",
-        2, "SS",
-        true, false, false,
-        TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-        {0,0,0,1}, {0,0,0,0}
-      );
-      menuTxt.updateCommandBuffer();
-    }
-    else if (enterPressed) {
-      // ENTER: clear all menu texts (ID 1,2,3) and start
-      menuTxt.removeText(1);
-      menuTxt.removeText(2);
-      menuTxt.removeText(3);
-
-      // set the gameTime once, based on difficulty
-      switch (currentDifficulty) {
-        case Difficulty::Easy:   initialGameDuration = 6 * 60.0f; break;
-        case Difficulty::Medium: initialGameDuration = 5 * 60.0f; break;
-        case Difficulty::Hard:   initialGameDuration = 4 * 60.0f; break;
-      }
-      gameTime    = initialGameDuration;
-      gameStarted = false;    // timer will start fresh
-      state       = AppState::Playing;
-      showStartText = true;
-      RebuildPipeline();
-    }
+  if (escPressed) {
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
     break;
+  }
+
+  // ---- handle input ----
+  if (sPressed) {
+    // Hide line1 + difficulty, show controls (ID 3)
+    menuTxt.removeText(1);
+    menuTxt.removeText(2);
+    menuTxt.removeText(3);
+    menuTxt.print(
+      0.0f, 0.91f,
+      "Find and collect all the rings to win the game!\n"
+      "Move: W-A-S-D / Q-E / R-F | Arrows : look around | Camera : I / O / P\n"
+      "To choose the difficulty, press: [E] Easy, [M] Medium, [H] Hard\n"
+      "Press [C] to close this text",
+      3, "SS",
+      true, true, false,
+      TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+      {0,0,0,1},{0,0,0,0}
+    );
+    menuTxt.updateCommandBuffer();
+  }
+  else if (cPressed || ePressed || mPressed || hPressed) {
+    // C/E/M/H: hide controls (ID3), optionally change difficulty, then reprint line1+diff (ID1+2)
+
+    // 1) Rimuovo solo il block dei controlli
+    menuTxt.removeText(3);
+
+    // 2) Se è uno di E/M/H setto e ristampo la difficoltà
+    if      (ePressed) currentDifficulty = Difficulty::Easy;
+    else if (mPressed) currentDifficulty = Difficulty::Medium;
+    else if (hPressed) currentDifficulty = Difficulty::Hard;
+
+    // 3) Ristampo la prima linea (ID 1)
+    menuTxt.print(
+      -0.85f, 0.7f,
+      "[ENTER] Start Simulation   [S] Show Help & Controls   [ESC] Exit",
+      1, "SS",
+      true, true, false,
+      TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
+      {0,0,0,1},{0,0,0,0}
+    );
+
+    // 4) Ristampo la difficoltà (ID 2)
+    const char* diffText = "";
+    switch (currentDifficulty) {
+      case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)";   break;
+      case Difficulty::Medium: diffText = "Difficulty: Medium (5 minutes)"; break;
+      case Difficulty::Hard:   diffText = "Difficulty: Hard (4 minutes)";   break;
+    }
+    menuTxt.print(
+      0.0f, 0.90f,
+      diffText,
+      2, "SS",
+      true, false, false,
+      TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+      {0,0,0,1},{0,0,0,0}
+    );
+
+    menuTxt.updateCommandBuffer();
+  }
+  else if (enterPressed) {
+    // ENTER: rimuovo tutti e parto
+    menuTxt.removeText(1);
+    menuTxt.removeText(2);
+    menuTxt.removeText(3);
+
+    // setto durata
+    switch (currentDifficulty) {
+      case Difficulty::Easy:   initialGameDuration = 6*60.0f; break;
+      case Difficulty::Medium: initialGameDuration = 5*60.0f; break;
+      case Difficulty::Hard:   initialGameDuration = 4*60.0f; break;
+    }
+    gameTime    = initialGameDuration;
+    gameStarted = false;
+    state       = AppState::Playing;
+    showStartText = true;
+    RebuildPipeline();
+  }
+  break;
 
 
 			case AppState::GameOver:
