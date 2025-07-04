@@ -930,7 +930,8 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 //************************************************************************************************
 //************************************************************************************************
 // This function creates a look-at matrix that rotates the camera to look in the direction specified by Angs
-glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs) {
+glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs)
+{
     glm::mat4 I(1.0f);
     glm::mat4 T   = glm::translate(I, -Pos); // Move the scene opposite to the camera position
     glm::mat4 Ry  = glm::rotate(I, -Angs.x, glm::vec3(0,1,0)); // Negative Yaw
@@ -943,7 +944,8 @@ glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs) {
 //************************************************************************************************
 //************************************************************************************************
 // Update the camera mode based on key presses
-void DroneSimulator::setCameraMode(GLFWwindow* w) {
+void DroneSimulator::setCameraMode(GLFWwindow* w)
+{
     if (glfwGetKey(w, GLFW_KEY_I)) { seenCenter=true; seenFollow=false; seenDrone=false;  } // 3-rd
     if (glfwGetKey(w, GLFW_KEY_O)) { seenCenter=false; seenFollow=true; seenDrone=false;  } // 1-st
     if (glfwGetKey(w, GLFW_KEY_P)) { seenCenter=false; seenFollow=false; seenDrone=true;  } // 1-st
@@ -953,7 +955,8 @@ void DroneSimulator::setCameraMode(GLFWwindow* w) {
 //************************************************************************************************
 //************************************************************************************************
 // Get the drone input from the keyboard and update the drone position and orientation
-void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT) {
+void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT)
+{
     const float ROT_SPEED  = glm::radians(45.0f);
     const float MOVE_SPEED = 50.0f;
 
@@ -1042,7 +1045,8 @@ void DroneSimulator::updateGlobalUBO(GlobalUniformBufferObject& gubo, float elap
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
-void DroneSimulator::reset() {
+void DroneSimulator::reset()
+{
 	gameOver = 0.0f;
 	showStartText = false;
 	showCommandsKeyboard = false;
@@ -1067,7 +1071,8 @@ void DroneSimulator::reset() {
 //************************************************************************************************
 //************************************************************************************************
 // Load the mountain points from the OBJ file and apply transformations, so we can have all the points to set boundaries
-void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points) {
+void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points)
+{
 	// Open the OBJ file containing the base mountain mesh
 	std::ifstream objFile("assets/models/snowyMountain.obj");
 	if (!objFile.is_open()) {
@@ -1120,7 +1125,8 @@ void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points) {
 //************************************************************************************************
 //************************************************************************************************
 // This function checks if the drone is too close to any mountain point
-bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mountainPoints, float threshold) {
+bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mountainPoints, float threshold)
+{
 	for (const auto& pt : mountainPoints) {
 		if (glm::distance(pos, pt) < threshold)
 			return true;
@@ -1132,7 +1138,8 @@ bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vecto
 //************************************************************************************************
 //************************************************************************************************
 // This function checks if the drone has passed through any ring and updates the passed vector.
-float DroneSimulator::checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius) {
+float DroneSimulator::checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius)
+{
 	float res = 0.0f;
 	for (size_t i = 0; i < rings.size(); ++i) {
 		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {

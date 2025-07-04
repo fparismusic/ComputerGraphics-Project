@@ -14,9 +14,13 @@
 //        vec4  : alignas(16)
 //        mat3  : alignas(16)
 //        mat4  : alignas(16)
+// alignas(n) tells the compiler to align each variable in memory according to Vulkan's strict rules
 struct UniformBufferObject {
+	// Model-View-Projection matrix: used in vertex shader to transform object coordinates to screen space.
 	alignas(16) glm::mat4 mvpMat;
+	// Model matrix: it positions and orients the object in the world.
 	alignas(16) glm::mat4 mMat;
+	// Normal matrix: used to transform normals correctly, especially when the model is scaled.
 	alignas(16) glm::mat4 nMat;
 };
 
