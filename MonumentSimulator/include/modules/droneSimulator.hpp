@@ -183,8 +183,6 @@ protected:
 	void updateUniformBuffer(uint32_t currentImage);
 
 	//************************************************************************************************
-	// LookAt matrix
-	glm::mat4 LookAtMat(glm::vec3 Pos, glm::vec3 aim, float Roll);
 
 	// LookInDri matrix
 	glm::mat4 LookInDirMat(glm::vec3 Pos, glm::vec3 Angs);

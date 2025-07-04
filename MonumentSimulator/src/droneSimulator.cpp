@@ -26,11 +26,11 @@ void DroneSimulator::onWindowResize(int w, int h)
 {
 	std::cout << "Window resized to: " << w << " x " << h << "\n";
 	Ar = (float)w / (float)h;
-	// Update Render Pass
+	// Update Render Pass size window
 	RP.width = w;
 	RP.height = h;
 
-	// updates the textual output
+	// Update the textual output
 	menuTxt.resizeScreen(w, h);
 }
 
@@ -93,11 +93,11 @@ void DroneSimulator::localInit()
 		// fourth element : the data type of the element the corresponding Vulkan constant
 		// fifth  elmenet : the size in byte of the element
 		// sixth  element : a constant defining the element usage
-		//                   POSITION - a vec3 with the position
-		//                   NORMAL   - a vec3 with the normal vector
-		//                   UV       - a vec2 with a UV coordinate
+		//                   POSITION - a vec3 with the position of vertexes in 3D space
+		//                   NORMAL   - a vec3 with the normal vector: it is used to calculate the light reflection
+		//                   UV       - a vec2 with a UV coordinate: it is used to map textures on the surface or decide which part of the texture to use
 		//                   COLOR    - a vec4 with a RGBA color
-		//                   TANGENT  - a vec4 with the tangent vector
+		//                   TANGENT  - a vec4 with the tangent vector: it is used to calculate the light reflection in advanced shading techniques
 		//                   OTHER    - anything else
 		{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos), sizeof(vec3), POSITION},
 		{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV),  sizeof(vec2), UV},
@@ -127,15 +127,16 @@ void DroneSimulator::localInit()
 		{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(skyBoxVertex, UV), sizeof(glm::vec2), UV}
 	});
 
+	// VD inside scene.JSON
 	VDRs.resize(2);
-	VDRs[0].init("VD_phong",   &VD_phong);
-	VDRs[1].init("VD_pbr",   &VD_pbr);
+	VDRs[0].init("VD_phong", &VD_phong);
+	VDRs[1].init("VD_pbr", &VD_pbr);
 
 	// Render pass
 	RP.init(this);
 	loadMountainPoints(mountainPoints);
 
-	// sets the background
+	// Sets RP background
 	RP.properties[0].clearValue = {0.53f, 0.81f, 0.92f, 0.8f};
 
 	// Pipelines [Shader couples]
@@ -143,9 +144,9 @@ void DroneSimulator::localInit()
 	// Third and fourth parameters are respectively the vertex and fragment shaders
 	// The last array, is a vector of pointer to the layouts of the sets that will be used in this pipeline. The first element will be set 0, and so on..
 	P_phong.init(this, &VD_phong, "shaders/Phong.vert.spv", "shaders/Phong.frag.spv", { &DSL_global, &DSL_map });
-	P_phong.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
-	P_phong.setCullMode(VK_CULL_MODE_NONE);
-	P_phong.setPolygonMode(VK_POLYGON_MODE_FILL);
+	P_phong.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);		// Helps avoid artifacts in coplanar geometry or transparent surfaces
+	P_phong.setCullMode(VK_CULL_MODE_NONE);				// Useful if you want to render both sides of a surface
+	P_phong.setPolygonMode(VK_POLYGON_MODE_FILL);	// Fill mode is the default, but you can also use VK_POLYGON_MODE_LINE for wireframe rendering
 
 	P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
 	P_pbr.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -162,6 +163,7 @@ void DroneSimulator::localInit()
 	P_skyBox.setCullMode(VK_CULL_MODE_NONE);
 	P_skyBox.setPolygonMode(VK_POLYGON_MODE_FILL);
 
+	// JSON Techniques mapping
 	PRs.resize(2);
 	PRs[0].init("Phong", {
 						 {&P_phong, {//Pipeline and DSL for the first pass
@@ -191,25 +193,31 @@ void DroneSimulator::localInit()
 	M_skyBox.init(this, &VD_skyBox, "assets/models/skybox.gltf", GLTF);
 
 	// Create HUD screens
+	// Calculate the width and height in NDC (Normalized Device Coordinates)
+	// Original HUD texture size is 1472x832, so we scale it based on window size and convert to NDC ([-1, 1])
 	float ndc_width  = 1472.0f / windowWidth * 2.0f;
 	float ndc_height = 832.0f / windowHeight * 2.0f;
-	ndc_width  *= 0.85f;
-	ndc_height *= 0.85f;
-	// Center the overlay in NDC coordinates
+	ndc_width  *= 0.85f; // Uniform scaling factor 85%
+	ndc_height *= 0.85f; // Uniform scaling factor 85%
+	// We compute the anchor point so that the overlay is centered in NDC space
 	glm::vec2 anchor = glm::vec2(-ndc_width / 2.0f, -ndc_height / 2.0f);
+
+	// Creating 3 different overlays (for menu, win screen, and lose screen)
 	for (int i = 0; i < 3; i++) {
 		M_overlay[i].vertices.clear();
+		// Building a 2D quad (rectangle of 2 triangles) [NDC coordinates + UV]
 		std::vector<VertexOverlay> tempVerts = {
-			{ glm::vec2(anchor.x, anchor.y), glm::vec2(0.0f, 0.0f) },
-			{ glm::vec2(anchor.x, anchor.y + ndc_height), glm::vec2(0.0f, 1.0f) },
-			{ glm::vec2(anchor.x + ndc_width, anchor.y), glm::vec2(1.0f, 0.0f) },
-			{ glm::vec2(anchor.x + ndc_width, anchor.y + ndc_height), glm::vec2(1.0f, 1.0f) },
+			{ glm::vec2(anchor.x, anchor.y), glm::vec2(0.0f, 0.0f) },					// Bottom-left (0)
+			{ glm::vec2(anchor.x, anchor.y + ndc_height), glm::vec2(0.0f, 1.0f) },	// Top-left	(1)
+			{ glm::vec2(anchor.x + ndc_width, anchor.y), glm::vec2(1.0f, 0.0f) },		// Bottom-right (2)
+			{ glm::vec2(anchor.x + ndc_width, anchor.y + ndc_height), glm::vec2(1.0f, 1.0f) }, // Top-right (3)
 		};
 
-		// Copia binaria nei vertices
+		// Copy vertex data into the model’s vertex buffer
 		M_overlay[i].vertices.resize(sizeof(VertexOverlay) * tempVerts.size());
 		std::memcpy(M_overlay[i].vertices.data(), tempVerts.data(), M_overlay[i].vertices.size());
 
+		// Define the two triangles that make up the quad
 		M_overlay[i].indices = { 0, 1, 2,    1, 2, 3 };
 		M_overlay[i].initMesh(this, &VD_overlay);
 	}
@@ -227,6 +235,7 @@ void DroneSimulator::localInit()
 
 	tex_skyBox.init(this, "assets/textures/Sky_diffuse.jpeg", VK_FORMAT_R8G8B8A8_SRGB, true);
 
+	//
 	// Number of UBO and textures that we will use
 	DPSZs.uniformBlocksInPool = 1*10 +  // Rings
 								1*4  +  // Mountain
@@ -242,7 +251,7 @@ void DroneSimulator::localInit()
 								1*3  +  // Menu
 								1*1  +  // SkyBox
 								1*1;	// Fonts
-	DPSZs.setsInPool          = 6;		// DS
+	DPSZs.setsInPool          = 6;		// DS we have created
 
 	std::cout << "\nLoading the scene\n\n";
 	if(SC.init(this, /*Npasses*/1, VDRs, PRs, "assets/models/scene.json") != 0) {
@@ -250,39 +259,44 @@ void DroneSimulator::localInit()
 		exit(0);
 	}
 
-	size_t totalInstances = SC.TI[0].InstanceCount;
-	size_t firstRingIndex = 4;                           // le prime 4 istanze sono le montagne
-	size_t numRings       = totalInstances - firstRingIndex;
+	// BAKING (precomputing and storing) ALGORITHM FOR RINGS -> We can make them disappear in this way
+	size_t totalInstances = SC.TI[0].InstanceCount; // Total number of instances in the first type of 'objects' in JSON
+	size_t firstRingIndex = 4;                      //  First 4 elements are mountains
+	size_t numRings = totalInstances - firstRingIndex;
 
-	// Scala iniziale = 1.0, Wm originale vuoto
-	ringScale      = std::vector<float>(numRings, 1.0f);
-	originalRingWm = std::vector<glm::mat4>(numRings);
+	ringScale      = std::vector<float>(numRings, 1.0f); // Vector to hold the scale of each ring (1.0 no scaling)
+	originalRingWm = std::vector<glm::mat4>(numRings); // Vector to store the original world model matrices (Wm) of each ring
 
-	// Generatore di yaw casuale
+	// Initialize a random number generator (Mersenne Twister)
+	// This will be used to generate random yaw rotations around the Y-axis
 	std::mt19937                         rng{ std::random_device{}() };
+	// Uniform distribution of yaw angles in degrees between -180 and 180
 	std::uniform_real_distribution<float> yawDistr(-180.0f, 180.0f);
 
+	// Looping over all the rings to apply a random yaw rotation
 	for (size_t r = 0; r < numRings; ++r) {
 	    int j = int(firstRingIndex + r);
 
-	    // Estrai la Wm che hai già costruito (T * R(-90,0,0) * S(2,2,2))
+		// Getting the original world model matrix (Wm) for this instance
+		// This matrix is constructed as: Translation * Rotation(-90 degrees on X-axis) * Scale(2,2,2)
 	    glm::mat4 base = SC.TI[0].I[j].Wm;
 
-	    // Genera un yaw casuale
+	    // Random Yaw
 	    float randomYaw = glm::radians(yawDistr(rng));
 
-	    // Costruisci una matrice che
-	    //  1) trasla al pivot originale,
-	    //  2) ruota attorno a Y di randomYaw,
-	    //  3) riapplica la Wm di base (che contiene già la tua rotazione -90 sull’asse X e la scala)
-	    glm::vec3 pivot = glm::vec3(base[3]);   // la colonna 3 è la posizione
+		// Build a transformation matrix that:
+		// 1) Translates the coordinate system to the pivot,
+		// 2) Rotates around the Y-axis by the random yaw,
+		// 3) Translates back to the original coordinate system,
+		// 4) Applies the original base transformation (which already contains rotation and scale)
+	    glm::vec3 pivot = glm::vec3(base[3]);   // Column 3 is the position
 	    glm::mat4 R = glm::translate(glm::mat4(1.0f), pivot)
 	                * glm::rotate   (glm::mat4(1.0f), randomYaw, glm::vec3(0,1,0))
 	                * glm::translate(glm::mat4(1.0f), -pivot)
 	                * base;
 
-	    // Salva il “baked” e applichiamolo come Wm corrente
-	    originalRingWm[r]            = R;
+	    // Save the bake and apply as the current world model matrix (Wm) for this ring
+	    originalRingWm[r] = R;
 	    SC.TI[0].I[j].Wm = R;
 	}
 
@@ -293,11 +307,16 @@ void DroneSimulator::localInit()
 
 	submitCommandBuffer("main", 0, populateCommandBufferAccess, this);
 
-	menuTxt.print(0.0f, 0.95f, "[ENTER] Start Simulation\n[S] Show Help & Controls\n[ESC] Exit\n",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,1.0f,1.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
+	menuTxt.print(0.0f, 0.95f, "[ENTER] Start Simulation\n[S] Show Help & Controls\n[ESC] Exit\n",
+					1,"CO",false,false,true,
+					TAL_RIGHT,	// Text Alignment
+					TRH_RIGHT,	// Horizontal anchor point
+					TRV_BOTTOM, // Vertical anchor point
+					{1.0f,1.0f,1.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 	const char* diffLabel =
-	currentDifficulty==Difficulty::Easy   ? "Easy (6 minutes)" :
-	currentDifficulty==Difficulty::Medium?  "Medium (5 minutes)" :
-	                                        "Hard (4 minutes)";
+		currentDifficulty==Difficulty::Easy   ? "Easy (6 minutes)" :
+		currentDifficulty==Difficulty::Medium?  "Medium (5 minutes)" :
+		                                        "Hard (4 minutes)";
 	menuTxt.print(
 		1.0f, 0.9f,
 		std::string("Difficulty: ") + diffLabel,
@@ -436,9 +455,7 @@ void DroneSimulator::localCleanup()
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
-// Here it is the creation of the command buffer:
-// You send to the GPU all the objects you want to draw,
-// with their buffers and textures
+// For the JSON scene, we need to populate the command buffer once
 void DroneSimulator::populateCommandBufferAccess(VkCommandBuffer commandBuffer, int currentImage, void *Params)
 {
 	// Simple trick to avoid having always 'T->'
@@ -450,11 +467,11 @@ void DroneSimulator::populateCommandBufferAccess(VkCommandBuffer commandBuffer, 
 // You send to the GPU all the objects you want to draw, with their buffers and textures
 void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 {
-    // —— MENU ─────────────────────────
+    // —— MENU ────────────────────────────────────────────────────────────────────────────────────────────────────
     if (state == AppState::Menu) {
         RP.begin(commandBuffer, currentImage);
 
-        UBO_overlay[0].visible = true;
+        UBO_overlay[0].visible = true; // Menu overlay is always visible in the menu state
         UBO_overlay[1].visible = false;
         UBO_overlay[2].visible = false;
 
@@ -476,6 +493,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
             {0,0,0,1}, {0,0,0,0}
         );
 
+		// Re-print the difficulty text
     	const char* diffText = "";
 	    switch (currentDifficulty) {
 			case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)";   break;
@@ -498,7 +516,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
         return;
     }
 
-    // —— GAME OVER ─────────────────────────
+    // —— GAME OVER ──────────────────────────────────────────────────────────────────────────────────────────────
     if (state == AppState::GameOver) {
         RP.begin(commandBuffer, currentImage);
 
@@ -507,19 +525,17 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
         UBO_overlay[1].visible = (gameOver > 0.0f);
         UBO_overlay[2].visible = (gameOver < 0.0f);
 
-        // Disable always depth test
         P_overlay.bind(commandBuffer);
         for (int i = 1; i <= 2; ++i) {
-            M_overlay[i].bind(commandBuffer);
+        	M_overlay[i].bind(commandBuffer);
             DS_overlay[i].bind(commandBuffer, P_overlay, 0, currentImage);
-            vkCmdDrawIndexed(
-                commandBuffer,
-                static_cast<uint32_t>(M_overlay[i].indices.size()),
+            vkCmdDrawIndexed(commandBuffer,
+            	static_cast<uint32_t>(M_overlay[i].indices.size()),
                 1, 0, 0, 0
             );
         }
 
-        // “Back to Menu”
+        // (“Back to Menu” text)
         menuTxt.print(
             0.0f, -0.8f,
             "[B] Back to Menu", 3, "SS",
@@ -533,10 +549,10 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
         return;
     }
 
-    // —— NORMAL RENDERING ─────────────────────────
+    // —— NORMAL RENDERING ───────────────────────────────────────────────────────────────────────────────────────
     RP.begin(commandBuffer, currentImage);
 
-    // --- scene and drone ---
+    // --- Scene and Drone ---
     P_phong.bind(commandBuffer);
     DS_global.bind(commandBuffer, P_phong, 0, currentImage);
 
@@ -560,7 +576,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
 		);
 	}
 
-    // --- skybox ---
+    // --- Skybox ---
     P_skyBox.bind(commandBuffer);
     DS_global.bind(commandBuffer, P_skyBox, 0, currentImage);
     DS_skyBox.bind(commandBuffer, P_skyBox, 1, currentImage);
@@ -569,6 +585,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
         static_cast<uint32_t>(M_skyBox.indices.size()), 1, 0, 0, 0
     );
 
+	// --- In-game Text ---
 	menuTxt.print(
 	  -0.95f, -0.8f,
 	  "Filippo Paris\nFrancesco Moretti\nMoein Zadeh",
@@ -578,6 +595,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
 	  {1.0f, 0.98f, 0.9f, 1.0f},
 	  {0.2f, 0.2f, 0.2f, 1.0f}
 	);
+
 	menuTxt.print(-0.95f, -0.52f,
 		"Move with W-A-S-D / Q-E / R-F\n"
 	    "Move arrows to look around\n"
@@ -611,7 +629,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	bool escJustPressed = escPressed && !prevEscPressed;
 	const float DRONE_SCALE = 0.065f;
 
-	// ─── GAME LOGIC (only PLAYING) ─────────────────────────
+	// ─── GAME LOGIC (only PLAYING) ────────────────────────────────────────────────────────────────────────────
 	if (state == AppState::Playing) {
 		if (escJustPressed) {
 	        // ESC pressed: reset game
@@ -625,7 +643,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	        return;
 	    }
 	    // Start timer
-	    if (!gameStarted) {
+	    if (!gameStarted) { // if the game has not started yet
 	        gameStartTime = std::chrono::high_resolution_clock::now();
 	        gameStarted   = true;
 	    }
@@ -633,7 +651,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	    float elapsed = std::chrono::duration<float>(
 	        std::chrono::high_resolution_clock::now() - gameStartTime).count();
 			gameTime = std::max(0.0f, initialGameDuration - elapsed);
-		if (gameTime < 0.1f) {
+		if (gameTime < 0.1f) { // When the game is almost over we switch to 1-st person so the HUD is clean
 		    seenCenter = false;
 		    seenFollow = false;
 		    seenDrone  = true;
@@ -641,7 +659,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 
 	    // Input drone and collisions (checkRingPassage inside)
 	    float deltaT; glm::vec3 m, r; bool fire=false;
-	    getSixAxis(deltaT, m, r, fire);
+	    getSixAxis(deltaT, m, r, fire); // Assign deltaT, movement and rotation vectors
 	    totalElapsedTime += deltaT;
 	    getDroneInput(window, deltaT);
 	    setCameraMode(window);
@@ -651,7 +669,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		int totalSec    = static_cast<int>(std::ceil(gameTime));
 
 		// Update HUD only if there are changes
-		if (passedCount != lastPassedCount || totalSec != lastTotalSec) {
+		if (passedCount != lastPassedCount || totalSec != lastTotalSec) { // if the number of passed rings or the time has changed
 		    lastPassedCount = passedCount;
 		    lastTotalSec    = totalSec;
 
@@ -663,8 +681,8 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		                  "Rings: %2d/10   Time: %02d:%02d",
 		                  passedCount, mins, secs);
 
-		    // Remove old text and print new one
-		    menuTxt.removeText(HUD_ID);
+		    // Remove old text and print a new one
+		    menuTxt.removeText(HUD_ID); // HUD_ID = 2
 		    menuTxt.print(
 		        0.0f, 0.85f,
 		        hudBuffer,
@@ -677,14 +695,14 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		}
 
 	    // Verify gameOver
-	    if (gameTime <= 0.0f) {
+	    if (gameTime <= 0.0f) { // Lost condition
 	        gameOver = -1.0f;
 	        UBO_overlay[2].visible = true;
 			menuTxt.removeText(2);
 			menuTxt.removeText(3);
 			menuTxt.removeText(4);
 	        state = AppState::GameOver;
-	    } else if (passedCount == static_cast<int>(ringPassed.size())) {
+	    } else if (passedCount == static_cast<int>(ringPassed.size())) { // Win condition
 	        gameOver = 1.0f;
 	        UBO_overlay[1].visible = true;
 			menuTxt.removeText(2);
@@ -701,19 +719,19 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	    }
 	}
 
-	// ─── 2) SWITCH on remaining states ───────────────────────────────
+	// ─── SWITCH on remaining states ────────────────────────────────────────────────────────────────────────────
 	switch (state) {
 		case AppState::Menu:
-			// bind degli overlay
+			// Bind overlay menu
 			for (int i = 0; i < 3; ++i)
-				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
+				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0); // Map the overlay UBOs (1st is visible)
 
-			if (escPressed) {
+			if (escPressed) { // if ESC is pressed in the menu, we exit the application
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 				break;
 			}
 
-			// ---- handle input ----
+			// ---- Handle input difficulty ----
 			if (sPressed) {
 				// Hide line1 + difficulty, show controls (ID 3)
 				menuTxt.removeText(1);
@@ -735,15 +753,14 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 			else if (cPressed || ePressed || mPressed || hPressed) {
 				// C/E/M/H: hide controls (ID3), optionally change difficulty, then reprint line1+diff (ID1+2)
 
-				// 1) Rimuovo solo il block dei controlli
 				menuTxt.removeText(3);
 
-				// 2) Se è uno di E/M/H setto e ristampo la difficoltà
+				// Change difficulty if E, M, or H is pressed
 				if      (ePressed) currentDifficulty = Difficulty::Easy;
 				else if (mPressed) currentDifficulty = Difficulty::Medium;
 				else if (hPressed) currentDifficulty = Difficulty::Hard;
 
-				// 3) Ristampo la prima linea (ID 1)
+				// Re-print line1 (ID 1)
 				menuTxt.print(
 				  -0.85f, 0.7f,
 				  "[ENTER] Start Simulation   [S] Show Help & Controls   [ESC] Exit",
@@ -753,7 +770,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 				  {0,0,0,1},{0,0,0,0}
 				);
 
-				// 4) Ristampo la difficoltà (ID 2)
+				// Re-print difficulty (ID 2)
 				const char* diffText = "";
 				switch (currentDifficulty) {
 				  case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)";   break;
@@ -772,12 +789,12 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 				menuTxt.updateCommandBuffer();
 			}
 			else if (enterPressed) {
-				// ENTER: rimuovo tutti e parto
+				// ENTER pressed: start the game
 				menuTxt.removeText(1);
 				menuTxt.removeText(2);
 				menuTxt.removeText(3);
 
-				// setto durata
+				// Set initial game duration based on difficulty
 				switch (currentDifficulty) {
 				  case Difficulty::Easy:   initialGameDuration = 6*60.0f; break;
 				  case Difficulty::Medium: initialGameDuration = 5*60.0f; break;
@@ -801,7 +818,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 			for (int i = 0; i < 3; ++i)
 				DS_overlay[i].map(currentImage, &UBO_overlay[i], 0);
 
-		    if (bPressed) {
+		    if (bPressed) { // If B is pressed, we return to the menu
 			    reset();
 				state = AppState::Menu;
 				RebuildPipeline();
@@ -811,25 +828,36 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		default: break;
 	}
 
-    // ─── View and proj matrix ───────────────
+    // ─── View and proj matrix ──────────────────────────────────────────────────────────────────────────────────
+	// Create a perspective projection matrix (camera projection)
+	// Fovy is the vertical field of view in radians, 0.1f is the near plane, 5000.0f is the far plane
     glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
-    proj[1][1] *= -1;
+    proj[1][1] *= -1; // Vulkan spec
 
+	// View matrix: it defines the camera position and orientation
     glm::mat4 view;
     if (seenCenter) {
+    	// 3rd-person camera behind the drone, offset along its local Z-axis
         glm::vec3 offset = glm::vec3(0, 0, 6.4f * DRONE_SCALE);
+    	// Building the drone's rotation matrix (Yaw → Pitch → Roll) [drone orientation]
         glm::mat4 R = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
                     * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
                     * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1));
+
+    	// Computing the camera position in world space (drone position + rotated offset)
         glm::vec3 camP = global_pos_drone + glm::vec3(R * glm::vec4(offset,0.0f));
+    	// Up vector in world space to orient the camera correctly
         glm::vec3 up  = glm::normalize(glm::vec3(R * glm::vec4(0,1,0,0)));
+
+    	// Creating the view matrix: look from camP toward the drone, using the rotated up vector
+    	// lookAt transform world coordinates to camera coordinates
         view = glm::lookAt(camP, global_pos_drone, up);
     }
-    else if (seenFollow) {
+    else if (seenFollow) { // Overhead follow camera: slightly above and behind the drone
         glm::vec3 camP = global_pos_drone + glm::vec3(0, 4.0f*DRONE_SCALE, 1.5f*DRONE_SCALE);
         view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
     }
-    else {
+    else {// First-person or close-up view, camera is slightly above the drone
         // seenDrone
         glm::vec3 camP = global_pos_drone + glm::vec3(
             glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0))
@@ -837,45 +865,45 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
         view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
     }
 
-    // ─── Global UBO ───────────────────────────────────────
+    // ─── Global UBO ────────────────────────────────────────────────────────────────────────────────────────────
     GUBO.proj       = proj;
     GUBO.view       = view;
     GUBO.cameraPos  = CamPos = glm::vec3(glm::inverse(view)[3]);
-    GUBO.lightDir   = glm::normalize(glm::vec3(0,1,0));
+    GUBO.lightDir   = glm::normalize(glm::vec3(0,1,0)); // Direction of the light source
     GUBO.time       = totalElapsedTime;
     updateGlobalUBO(GUBO, totalElapsedTime);
     DS_global.map(currentImage, &GUBO, 0);
 
-	// 5bis) Appiattisco i ring “collezionati”
+	// Flatten the ringScale vector to 1.0f for all rings
 	for (int j = 4; j < SC.TI[0].InstanceCount; ++j) {
-	int ringIdx = j - 4;
-	float s = ringScale[ringIdx];  // 1 = visibile, 0 = sparito
-	SC.TI[0].I[j].Wm =
-	    originalRingWm[ringIdx]
-	  * glm::scale(glm::mat4(1.0f), glm::vec3(s));
+		int ringIdx = j - 4;
+		float s = ringScale[ringIdx];  // 1 = visible, 0 = hidden
+		SC.TI[0].I[j].Wm =
+		    originalRingWm[ringIdx]
+		  * glm::scale(glm::mat4(1.0f), glm::vec3(s));
 	}
 
-	// ─── UBOs Mountain ─────────────────────────────────────────────
+	// ─── UBOs Mountain ──────────────────────────────────────────────────────────────────────────────────────────
 	for (int i = 0; i < SC.TI[0].InstanceCount; ++i) {
 	    ubos.mMat   = SC.TI[0].I[i].Wm;
 	    ubos.mvpMat = proj * view * ubos.mMat;
 	    ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
-	    // Mappa prima il GUBO (set 0), poi ubos (set 1):
+	    // Mapping first the GUBO (set 0), then all ubos (set 1):
 	    SC.TI[0].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
 	    SC.TI[0].I[i].DS[0][1]->map(currentImage, &ubos, 0);
 	}
 
-	// ─── UBO Station ────────────────────────────────────────────
+	// ─── UBO Station ────────────────────────────────────────────────────────────────────────────────────────────
 	for (int i = 0; i < SC.TI[1].InstanceCount; ++i) {
 	    ubosStart.mMat   = SC.TI[1].I[i].Wm;
 	    ubosStart.mvpMat = proj * view * ubosStart.mMat;
 	    ubosStart.nMat   = glm::inverse(glm::transpose(ubosStart.mMat));
-	    // Anche qui, prima GUBO poi ubosStart:
+	    // Mapping first the GUBO (set 0), then all ubosStart (set 1):
 	    SC.TI[1].I[i].DS[0][0]->map(currentImage, &GUBO, 0);
 	    SC.TI[1].I[i].DS[0][1]->map(currentImage, &ubosStart, 0);
 	}
 
-    // ─── UBO Drone ────────────────────────────────────────────────
+    // ─── UBO Drone ──────────────────────────────────────────────────────────────────────────────────────────────
     {
         glm::mat4 model = glm::translate(glm::mat4(1.0f), global_pos_drone)
                         * glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
@@ -889,7 +917,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
         DS_drone.map(currentImage, &UBO_drone, 0);
     }
 
-    // ─── UBO SkyBox ───────────────────────────────────────────────
+    // ─── UBO SkyBox ─────────────────────────────────────────────────────────────────────────────────────────────
     {
         glm::mat4 skyModel = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1,0,0))
                            * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
@@ -901,27 +929,20 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
-glm::mat4   DroneSimulator::LookAtMat(glm::vec3 Pos, glm::vec3 aim, float Roll) {
+// This function creates a look-at matrix that rotates the camera to look in the direction specified by Angs
+glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs) {
     glm::mat4 I(1.0f);
-    glm::mat4 R = glm::rotate(I, glm::radians(Roll), glm::vec3(0,1,0));
-    return R * glm::lookAt(Pos, aim, glm::vec3(0,1,0));
+    glm::mat4 T   = glm::translate(I, -Pos); // Move the scene opposite to the camera position
+    glm::mat4 Ry  = glm::rotate(I, -Angs.x, glm::vec3(0,1,0)); // Negative Yaw
+    glm::mat4 Rx  = glm::rotate(I, -Angs.y, glm::vec3(1,0,0)); // Negative Pitch
+    glm::mat4 Rz  = glm::rotate(I, -Angs.z, glm::vec3(0,0,1)); // Negative Roll
+    return Rz * Rx * Ry * T; // Rotation -> Translation
 }
 
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
-glm::mat4   DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs) {
-    glm::mat4 I(1.0f);
-    glm::mat4 T   = glm::translate(I, -Pos);
-    glm::mat4 Ry  = glm::rotate(I, -Angs.x, glm::vec3(0,1,0));
-    glm::mat4 Rx  = glm::rotate(I, -Angs.y, glm::vec3(1,0,0));
-    glm::mat4 Rz  = glm::rotate(I, -Angs.z, glm::vec3(0,0,1));
-    return Rz * Rx * Ry * T;
-}
-
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
+// Update the camera mode based on key presses
 void DroneSimulator::setCameraMode(GLFWwindow* w) {
     if (glfwGetKey(w, GLFW_KEY_I)) { seenCenter=true; seenFollow=false; seenDrone=false;  } // 3-rd
     if (glfwGetKey(w, GLFW_KEY_O)) { seenCenter=false; seenFollow=true; seenDrone=false;  } // 1-st
@@ -931,6 +952,7 @@ void DroneSimulator::setCameraMode(GLFWwindow* w) {
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
+// Get the drone input from the keyboard and update the drone position and orientation
 void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT) {
     const float ROT_SPEED  = glm::radians(45.0f);
     const float MOVE_SPEED = 50.0f;
@@ -943,13 +965,14 @@ void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT) {
     if(glfwGetKey(w, GLFW_KEY_Q))     droneRoll  -= deltaT * ROT_SPEED;
     if(glfwGetKey(w, GLFW_KEY_E))     droneRoll  += deltaT * ROT_SPEED;
 
-	// traslations
+	// translations
 	glm::mat4 R_yaw = glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0));
 	glm::vec3 forward = glm::vec3(R_yaw * glm::vec4(0,0,-1,0));
 	glm::vec3 right   = glm::vec3(R_yaw * glm::vec4(1,0, 0,0));
 
 	if (glfwGetKey(w, GLFW_KEY_W)) {
 		glm::vec3 attempt = global_pos_drone + MOVE_SPEED * forward * deltaT;
+		// Check if the drone is too close to any mountain point
 		if (!isTooCloseToMountain(attempt, mountainPoints)) global_pos_drone = attempt;
 	}
 	if (glfwGetKey(w, GLFW_KEY_S)) {
@@ -978,19 +1001,14 @@ void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT) {
 	global_pos_drone.y = glm::clamp(global_pos_drone.y, minY, maxY);
 	global_pos_drone.z = glm::clamp(global_pos_drone.z, minZ, maxZ);
 
+	// Check gameOver condition
 	gameOver = this->checkRingPassage(global_pos_drone, ringPositions, ringPassed);
-
-	if (glfwGetKey(w, GLFW_KEY_P) == GLFW_PRESS) {
-		std::cout << "Drone Position: "
-				  << global_pos_drone.x << ", "
-				  << global_pos_drone.y << ", "
-				  << global_pos_drone.z << std::endl;
-	}
 }
 
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
+// This function updates the color and intensity of the light source based on the elapsed time
 const glm::vec3 dawnColor = glm::vec3(1.0f, 0.45f, 0.2f);
 const glm::vec3 noonColor = glm::vec3(1.0f, 1.0f, 0.95f);
 const glm::vec3 sunsetColor = glm::vec3(1.0f, 0.2f, 0.1f);
@@ -1048,15 +1066,19 @@ void DroneSimulator::reset() {
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
+// Load the mountain points from the OBJ file and apply transformations, so we can have all the points to set boundaries
 void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points) {
+	// Open the OBJ file containing the base mountain mesh
 	std::ifstream objFile("assets/models/snowyMountain.obj");
 	if (!objFile.is_open()) {
 		std::cerr << "Error loading snowyMountain.obj" << std::endl;
 		return;
 	}
 
-	std::vector<glm::vec3> rawVertices;
+	std::vector<glm::vec3> rawVertices; // Temporary container for the original vertices
+
 	std::string line;
+	// Parsing the OBJ file, reading only the vertex positions (lines starting with 'v ')
 	while (std::getline(objFile, line)) {
 		if (line.substr(0, 2) == "v ") {
 			std::istringstream iss(line.substr(2));
@@ -1065,10 +1087,10 @@ void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points) {
 			rawVertices.push_back(v);
 		}
 	}
-
+	// Close the file after reading
 	objFile.close();
 
-	// Define transforms for the 4 mountains
+	// Define transforms for the 4 mountains: look at JSON
 	std::vector<std::pair<glm::vec3, float>> transforms = {
 		{{0, 150, 0}, 0.0f},
 		{{-1960, 145, 0}, 180.0f},
@@ -1078,14 +1100,17 @@ void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points) {
 
 	float scale = 2000.0f;
 
+	// For each transform we apply scale, rotation, and translation to the base vertices
 	for (const auto& [pos, yawDeg] : transforms) {
-		float yawRad = glm::radians(yawDeg);
+		float yawRad = glm::radians(yawDeg); // Converting yaw angle to radians
 		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), yawRad, glm::vec3(0, 1, 0));
+
+		// Applying transformations to each vertex
 		for (const auto& v : rawVertices) {
-			glm::vec3 scaled = v * scale;
-			glm::vec3 rotated = glm::vec3(rotation * glm::vec4(scaled, 1.0f));
-			glm::vec3 transformed = rotated + pos;
-			points.push_back(transformed);
+			glm::vec3 scaled = v * scale; // Scaling the vertex
+			glm::vec3 rotated = glm::vec3(rotation * glm::vec4(scaled, 1.0f)); // Rotating around Y axis
+			glm::vec3 transformed = rotated + pos; // Translating to the final position
+			points.push_back(transformed); // Adding to the output vector
 		}
 	}
 	std::cout << "Loaded " << points.size() << " mountain vertices.\n";
@@ -1094,6 +1119,7 @@ void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points) {
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
+// This function checks if the drone is too close to any mountain point
 bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mountainPoints, float threshold) {
 	for (const auto& pt : mountainPoints) {
 		if (glm::distance(pos, pt) < threshold)
@@ -1105,16 +1131,13 @@ bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vecto
 //************************************************************************************************
 //************************************************************************************************
 //************************************************************************************************
-float DroneSimulator::checkRingPassage(glm::vec3 dronePos,
-				   std::vector<glm::vec3>& rings,
-				   std::vector<bool>& passed,
-				   float radius)
-{
+// This function checks if the drone has passed through any ring and updates the passed vector.
+float DroneSimulator::checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius) {
 	float res = 0.0f;
 	for (size_t i = 0; i < rings.size(); ++i) {
 		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
 			passed[i] = true;
-			ringScale[i] = 0.0f;                   // <— sparisce!
+			ringScale[i] = 0.0f;                   // <— Hiding the ring
 			std::cout << "Great, Ring " << (i + 1) << " passed!" << std::endl;
 		}
 	}
