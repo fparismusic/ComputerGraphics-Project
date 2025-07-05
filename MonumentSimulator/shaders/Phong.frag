@@ -1,9 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-// Descrittori
 // set 0, binding 0: Global UBO (cameraPos, lightDir, lightColor, ecc.)
-// set 1, binding 1: sampler2D della baseColor della montagna
+// set 1, binding 1: sampler2D mountain baseColor
 
 layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
         vec3 cameraPos;

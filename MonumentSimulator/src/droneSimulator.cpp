@@ -937,7 +937,7 @@ glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs)
     glm::mat4 Ry  = glm::rotate(I, -Angs.x, glm::vec3(0,1,0)); // Negative Yaw
     glm::mat4 Rx  = glm::rotate(I, -Angs.y, glm::vec3(1,0,0)); // Negative Pitch
     glm::mat4 Rz  = glm::rotate(I, -Angs.z, glm::vec3(0,0,1)); // Negative Roll
-    return Rz * Rx * Ry * T; // Rotation -> Translation
+    return Rz * Rx * Ry * T; // Translation -> Rotation
 }
 
 //************************************************************************************************

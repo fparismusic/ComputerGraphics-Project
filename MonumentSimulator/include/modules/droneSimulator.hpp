@@ -184,7 +184,7 @@ protected:
 
 	//************************************************************************************************
 
-	// LookInDri matrix
+	// LookInDir matrix
 	glm::mat4 LookInDirMat(glm::vec3 Pos, glm::vec3 Angs);
 
 	// Control camera positions

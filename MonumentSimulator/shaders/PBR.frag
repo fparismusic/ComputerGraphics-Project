@@ -97,21 +97,22 @@ void main() {
     // For dielectrics 0.04, for metals albedo color (metallic blend)
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    float NDF = DistributionGGX(Nmap, H, roughness);
-    float G   = GeometrySmith(Nmap, V, L, roughness);
-    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    float NDF = DistributionGGX(Nmap, H, roughness);  // Microfacet distribution function
+    float G   = GeometrySmith(Nmap, V, L, roughness); // Shadowing and masking term
+    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0); // Fresnel effect: higer angle = more reflection
 
-    // Calculate specular BRDF term
+    // Calculate specular BRDF term: Cook-Torrance model
     vec3 specular = (NDF * G * F) /
                     max(4.0 * max(dot(Nmap, V), 0.0001f) * max(dot(Nmap, L), 0.0), 0.0001f);
 
     vec3 kS = F;                // kS = specular reflection amount
     vec3 kD = vec3(1.0) - kS;   // kD = diffuse reflection amount
-    kD *= 1.0 - metallic; // Metals have no diffuse component, so scale diffuse by (1 - metallic)
+    kD *= 1.0 - metallic;       // Metals have no diffuse component, so scale diffuse by (1 - metallic)
 
     // Lambertian diffuse component scaled by PI to normalize
+    // Diffuse = Lambert, specular = Cook-Torrance
     float NdotL = max(dot(Nmap, L), 0.0);
-    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL; // Direct light on the object
 
     // Ambient term to simulate indirect lighting
     vec3 ambient = vec3(0.015f) * albedo;
