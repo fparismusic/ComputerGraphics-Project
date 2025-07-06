@@ -48,7 +48,7 @@ The objective is to control a drone and pass through **10 golden rings** within 
 
 ### Installation Steps  
 ```bash
-git clone https://github.com/yourusername/DroneSimulator.git
+git clone https://github.com/fparismusic/ComputerGraphics-Project.git
 cd DroneSimulator
 mkdir build
 cd build
