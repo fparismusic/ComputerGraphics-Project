@@ -9,7 +9,7 @@
 <table style="width:100%; table-layout: fixed;">
   <tr>
     <td style="text-align: center; vertical-align: top;">
-      <img src="images/moein.jpg" alt="Moein Peyghambar Zadeh" width="200" style="border-radius: 50%;">
+      <img src="images/Moein.jpg" alt="Moein Peyghambar Zadeh" width="200" style="border-radius: 50%;">
       <h4>Moein PeyghambarZadeh</h4>
       <p>MSc in Geoinformatics Engineering @POLIMI | BSc in Computer Engineering @Shdu<br>
       </p>
