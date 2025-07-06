@@ -9,5 +9,3 @@
 #define  SCENE_IMPLEMENTATION
 #include "modules/Scene.hpp"
 
-#define ANIMATIONS_IMPLEMENTATION
-#include "modules/Animations.hpp"
