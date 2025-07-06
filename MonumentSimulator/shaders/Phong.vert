@@ -29,6 +29,6 @@ void main() {
     // Pass the UV coordinates to the fragment shader
     fragUV = inUV;
 
-    // Calculate the final position in clip space
+    // Clip‐space (intermediate phase before NDC and screen-space)
     gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
 }

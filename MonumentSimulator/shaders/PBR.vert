@@ -29,6 +29,6 @@ void main() {
     // UV coordinates
     fragUV = inUV;
 
-    // Clip‐space
+    // Clip‐space (intermediate phase before NDC and screen-space)
     gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
 }
