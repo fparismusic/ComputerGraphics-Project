@@ -140,8 +140,12 @@ Time expires before collecting all rings.
 ## Visual Preview
 ![Menu](images/1.png)
 *Figure 1: Game menu.*
+
+
 ![Drone at start](images/2.png)
 *Figure 2: Drone at start.*
+
+
 ![Flying drone with ring](images/3.png)
 *Figure 3: Flying drone with ring.*
 
