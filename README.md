@@ -138,6 +138,9 @@ Time expires before collecting all rings.
 ---
 
 ## Visual Preview
+![Menu](images/1.png)
+![Drone at start](images/2.png)
+![Flying drone with ring](images/3.png)
 
 ---
 
