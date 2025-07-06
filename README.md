@@ -59,6 +59,39 @@ make
 All required assets (models, textures, shaders) are included in the repository.
 External libraries and course-provided files (Starter.hpp, Scene.hpp, TextMaker.hpp) are already integrated.
 
+
+### 🚨 Large Asset Warning (IMPORTANT!)
+
+Some models used in this project are **large in size (>100 MB)** and are tracked using **[Git LFS (Large File Storage)](https://git-lfs.com/)**.  
+If you **don’t install Git LFS before cloning**, some model files in `assets/models/` will appear as text pointer files and your build will fail or show missing objects.
+
+#### ✅ Option 1: Recommended — Install Git LFS
+
+Before cloning:
+```bash
+git lfs install
+git clone https://github.com/fparismusic/ComputerGraphics-Project.git
+cd DroneSimulator
+```
+
+If you already cloned without LFS:
+```bash
+git lfs pull
+```
+
+#### ❗ Option 2: Manual Download (Fallback)
+
+If you don’t want to use Git LFS, you can manually download the large model files and copy them to the correct folder:
+
+- Download from: [This link](https://polimi365-my.sharepoint.com/:u:/g/personal/10921320_polimi_it/ESDgeFUEgidBlSUjMjbmvgABdfU8JRuGcLWcVQfHBKFaFA?e=T8anWd)   
+- Then copy the files to:
+
+```
+assets/models/
+```
+
+Make sure the filenames match what the code expects.
+
 ---
 
 ## Getting Started
