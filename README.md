@@ -10,7 +10,7 @@
 <table style="width:100%; table-layout:fixed;">
   <tr>
     <td style="width:33.33%; text-align:center; vertical-align:top;">
-      <img src="images/Moein.jpg" alt="Moein Peyghambar Zadeh" style="width:150px; height:150px; border-radius:50%; object-fit:cover;"><br>
+      <img src="images/Moein.jpg" alt="Moein Peyghambar Zadeh" style="width:200px; height:200px; border-radius:50%; object-fit:cover;"><br>
       <h4>Moein PeyghambarZadeh</h4>
       <p>MSc in Geoinformatics Engineering @POLIMI<br>BSc in Computer Engineering @Shdu</p>
       <p>
@@ -20,7 +20,7 @@
       </p>
     </td>
     <td style="width:33.33%; text-align:center; vertical-align:top;">
-      <img src="images/Filippo.jpg" alt="Filippo Paris" style="width:150px; height:150px; border-radius:50%; object-fit:cover;"><br>
+      <img src="images/Filippo.jpg" alt="Filippo Paris" style="width:200px; height:200px; border-radius:50%; object-fit:cover;"><br>
       <h4>Filippo Paris</h4>
       <p>MSc in Music & Acoustic Engineering @POLIMI<br>BSc in Computer Engineering @UniBo</p>
       <p>
@@ -30,7 +30,7 @@
       </p>
     </td>
     <td style="width:33.33%; text-align:center; vertical-align:top;">
-      <img src="images/Fra.jpg" alt="Francesco Moretti" style="width:150px; height:150px; border-radius:50%; object-fit:cover;"><br>
+      <img src="images/Fra.jpg" alt="Francesco Moretti" style="width:200px; height:200px; border-radius:50%; object-fit:cover;"><br>
       <h4>Francesco Moretti</h4>
       <p>MSc in Music & Acoustic Engineering @POLIMI</p>
       <p>
