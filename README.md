@@ -32,7 +32,7 @@
     <td style="width:33.33%; text-align:center; vertical-align:top;">
       <img src="images/Fra.jpg" alt="Francesco Moretti" style="width:200px; height:200px; border-radius:50%; object-fit:cover;"><br>
       <h4>Francesco Moretti</h4>
-      <p>MSc in Music & Acoustic Engineering @POLIMI | BSc in Computer Engineering @UniBo </p>
+      <p>MSc in Music & Acoustic Engineering @POLIMI <br> BSc in Computer Engineering @UniBo </p>
       <p>
         <a href="mailto:morettifra.23@gmail.com">Mail</a> |
         <a href="https://github.com/fra-moretti" target="_blank">GitHub</a> |
