@@ -1,0 +1,90 @@
+{
+  "assetfiles": [
+    {"id": "snowyMountain", "file": "assets/models/snowyMountain.obj", "format":"OBJ"},
+    {"id": "ring", "file": "assets/models/ring.gltf", "format":"GLTF"},
+    {"id": "start", "file": "assets/models/start-station.gltf", "format":"GLTF"}
+  ],
+  "models": [
+    {"id": "m1", "VD": "VD_phong", "model": "assets/models/snowyMountain.obj", "format":"OBJ"},
+    {"id": "r1", "VD": "VD_phong", "model": "assets/models/ring.gltf", "format":"GLTF"},
+    {"id": "s", "VD": "VD_pbr", "model": "assets/models/start-station.gltf", "format":"GLTF"}
+  ],
+  "textures": [
+    {"id": "mBase", "texture": "assets/textures/Map/Base_Color.jpg", "format": "C"},
+    {"id": "mNorm", "texture": "assets/textures/Map/Normal_Map.jpeg", "format": "D"},
+
+    {"id": "rBase", "texture": "assets/textures/Map/ring_baseColor.png", "format": "C"},
+    {"id": "rNorm", "texture": "assets/textures/Map/ring_clearcoat.png", "format": "D"},
+
+    {"id": "sBase", "texture": "assets/textures/Map/station_baseColor.png", "format": "C"},
+    {"id": "sMR", "texture": "assets/textures/Map/station_metallicRoughness.png", "format": "D"},
+    {"id": "sEmissive", "texture": "assets/textures/Map/station_emissive.png", "format": "C"},
+    {"id": "sNorm", "texture": "assets/textures/Map/station_normal.png", "format": "D"}
+  ],
+  "instances": [
+    {"technique": "Phong", "elements": [
+      {"id": "m1",  "model": "m1",   "texture": ["mBase", "mNorm"],
+                "translate": [0, 150, 0],
+                "scale": [2000, 2000, 2000]},
+      {"id": "m2",  "model": "m1",   "texture": ["mBase", "mNorm"],
+                "translate": [-1960, 145, 0],
+                "eulerAngles": [0, -180, 0],
+                "scale": [2000, 2000, 2000]},
+      {"id": "m3",  "model": "m1",   "texture": ["mBase", "mNorm"],
+                "translate": [-1960, 150, -1960],
+                "eulerAngles": [0, -180, 0],
+                "scale": [2000, 2000, 2000]},
+      {"id": "m4",  "model": "m1",   "texture": ["mBase", "mNorm"],
+                "translate": [0, 145, -1960],
+                "scale": [2000, 2000, 2000]},
+
+
+      {"id": "r1",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [60.753, 410.153, 201.635],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r2",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [329.919, 299.502, -141.467],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r3",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [161.293, 254.75, -501.018],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r4",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [329.234, 250, -1480.34],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r5",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [86.0901, 413.327, -1801.31],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r6",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [-229.292, 263.179, -1885.49],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r7",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [-1456.62, 256.705, -1772.74],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r8",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [-2084.15, 403.717, -2197.66],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r9",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate":  [-2241.4, 250, -1323.08],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]},
+      {"id": "r10",  "model": "r1",   "texture": ["rBase", "rNorm"],
+                "translate": [-2088.51, 416.687, -195.252],
+                "eulerAngles": [-90, 0, 0],
+                "scale": [2, 2, 2]}
+    ]},
+    {"technique": "PBR", "elements": [
+      {"id": "start-station",  "model": "s",   "texture": ["sBase", "sMR", "sEmissive", "sNorm"],
+        "translate": [-1000, 150, 100],
+        "eulerAngles": [-90, 90, 0],
+        "scale": [2, 2, 2]}
+    ]}
+  ]
+}
