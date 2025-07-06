@@ -416,7 +416,6 @@ FodyWeavers.xsd
 build/**/*
 
 lib/*
-#bin/*
 test/test_runner
 
 

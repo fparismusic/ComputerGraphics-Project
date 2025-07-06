@@ -58,4 +58,4 @@
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
 *.obj filter=lfs diff=lfs merge=lfs -text
-*.bin      filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
