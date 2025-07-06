@@ -1,4 +1,4 @@
-# DRONE-SIMULATOR
+# DRONE SIMULATOR
 
 ### Filippo Paris · Francesco Moretti · Moein Zadeh  
 **Computer Graphics 2024/25 – Politecnico di Milano**
