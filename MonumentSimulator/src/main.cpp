@@ -1,15 +1,9 @@
-// This is the main: probably you do not need to touch this!
 #include <iostream>
 #include <exception>
 #include <memory>
 
 #include "modules/droneSimulator.hpp"
 
-//-----------------------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------------------
-/*
- * MAIN FUNCTION: do not touch this
- */
 int main() {
     DroneSimulator app;
 

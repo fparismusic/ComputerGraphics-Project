@@ -3,10 +3,8 @@
 using namespace std;
 using namespace glm;
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// Here you set the main application parameters
+
+// Here we set the main application parameters
 void DroneSimulator::setWindowParameters()
 {
 	// Window size, title and initial background
@@ -18,10 +16,6 @@ void DroneSimulator::setWindowParameters()
 	Ar = (float)windowWidth / (float)windowHeight;
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// What to do when the window changes size
 void DroneSimulator::onWindowResize(int w, int h)
 {
 	std::cout << "Window resized to: " << w << " x " << h << "\n";
@@ -33,12 +27,8 @@ void DroneSimulator::onWindowResize(int w, int h)
 	// Update the textual output
 	menuTxt.resizeScreen(w, h);
 }
-
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// Here you load and setup all your Vulkan Models and Textures.
-// Here you also create your DescriptorSetLayouts and load the Shaders for the pipelines
+// Here we load and setup all our Vulkan Models and Textures.
+// we also create our DescriptorSetLayouts and load the Shaders for the pipelines
 void DroneSimulator::localInit()
 {
 	// Descriptor Layouts [what will be passed to the shaders]
@@ -145,8 +135,8 @@ void DroneSimulator::localInit()
 	// The last array, is a vector of pointer to the layouts of the sets that will be used in this pipeline. The first element will be set 0, and so on..
 	P_phong.init(this, &VD_phong, "shaders/Phong.vert.spv", "shaders/Phong.frag.spv", { &DSL_global, &DSL_map });
 	P_phong.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);		// Helps avoid artifacts in coplanar geometry or transparent surfaces
-	P_phong.setCullMode(VK_CULL_MODE_NONE);				// Useful if you want to render both sides of a surface
-	P_phong.setPolygonMode(VK_POLYGON_MODE_FILL);	// Fill mode is the default, but you can also use VK_POLYGON_MODE_LINE for wireframe rendering
+	P_phong.setCullMode(VK_CULL_MODE_NONE);				// Useful if we want to render both sides of a surface
+	P_phong.setPolygonMode(VK_POLYGON_MODE_FILL);	// Fill mode is the default, but we can also use VK_POLYGON_MODE_LINE for wireframe rendering
 
 	P_pbr.init(this, &VD_pbr, "shaders/PBR.vert.spv", "shaders/PBR.frag.spv", { &DSL_global, &DSL_drone });
 	P_pbr.setCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -267,7 +257,7 @@ void DroneSimulator::localInit()
 	ringScale      = std::vector<float>(numRings, 1.0f); // Vector to hold the scale of each ring (1.0 no scaling)
 	originalRingWm = std::vector<glm::mat4>(numRings); // Vector to store the original world model matrices (Wm) of each ring
 
-	// Initialize a random number generator (Mersenne Twister)
+	// Initialize a random number generator
 	// This will be used to generate random yaw rotations around the Y-axis
 	std::mt19937                         rng{ std::random_device{}() };
 	// Uniform distribution of yaw angles in degrees between -180 and 180
@@ -326,10 +316,7 @@ void DroneSimulator::localInit()
 	);
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// Here you create your pipelines and Descriptor Sets!
+// Here we create our pipelines and Descriptor Sets
 void DroneSimulator::pipelinesAndDescriptorSetsInit()
 {
 	// creates the render pass
@@ -341,7 +328,7 @@ void DroneSimulator::pipelinesAndDescriptorSetsInit()
 	P_overlay.create(&RP);
 	P_skyBox.create(&RP);
 
-	// Here you define the data set
+	// Here we define the data set
 	DS_global.init(this, &DSL_global, {});
 
 	std::vector<VkDescriptorImageInfo> tex_drone = {
@@ -376,10 +363,7 @@ void DroneSimulator::pipelinesAndDescriptorSetsInit()
 	menuTxt.pipelinesAndDescriptorSetsInit();
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// Here you destroy your pipelines and Descriptor Sets!
+// Here we destroy our pipelines and Descriptor Sets
 // All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
 void DroneSimulator::pipelinesAndDescriptorSetsCleanup()
 {
@@ -406,12 +390,9 @@ void DroneSimulator::pipelinesAndDescriptorSetsCleanup()
 	menuTxt.pipelinesAndDescriptorSetsCleanup();
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
+// Here we destroy all the Models, Texture and Desc. Set Layouts we created!
 // All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
-// You also have to destroy the pipelines: since they need to be rebuilt, they have two methods: .cleanup() recreates them, while .destroy() delete them completely
+// we also have to destroy the pipelines: since they need to be rebuilt, they have two methods: .cleanup() recreates them, while .destroy() delete them completely
 void DroneSimulator::localCleanup()
 {
 	// Cleanup textures
@@ -452,9 +433,6 @@ void DroneSimulator::localCleanup()
 	menuTxt.localCleanup();
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // For the JSON scene, we need to populate the command buffer once
 void DroneSimulator::populateCommandBufferAccess(VkCommandBuffer commandBuffer, int currentImage, void *Params)
 {
@@ -464,7 +442,7 @@ void DroneSimulator::populateCommandBufferAccess(VkCommandBuffer commandBuffer, 
 	T->populateCommandBuffer(commandBuffer, currentImage);
 }
 // Here it is the creation of the command buffer:
-// You send to the GPU all the objects you want to draw, with their buffers and textures
+// we send to the GPU all the objects we want to draw, with their buffers and textures
 void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage)
 {
     // —— MENU ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -611,10 +589,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
     RP.end(commandBuffer);
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
-// Here is where you update the uniforms. Very likely this will be where you will be writing the logic of your application.
+// Here is where we update the uniforms.
 void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 {
 	bool escPressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
@@ -647,7 +622,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	        gameStartTime = std::chrono::high_resolution_clock::now();
 	        gameStarted   = true;
 	    }
-	    // Calculate remaining game time
+	    // Calculating remaining game time
 	    float elapsed = std::chrono::duration<float>(
 	        std::chrono::high_resolution_clock::now() - gameStartTime).count();
 			gameTime = std::max(0.0f, initialGameDuration - elapsed);
@@ -668,12 +643,12 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		int passedCount = std::count(ringPassed.begin(), ringPassed.end(), true);
 		int totalSec    = static_cast<int>(std::ceil(gameTime));
 
-		// Update HUD only if there are changes
+		// update HUD only if there are changes
 		if (passedCount != lastPassedCount || totalSec != lastTotalSec) { // if the number of passed rings or the time has changed
 		    lastPassedCount = passedCount;
 		    lastTotalSec    = totalSec;
 
-		    // Write in buffer: "Rings: XX/10 Time: MM:SS"
+		    // writing in buffer: "Rings: XX/10 Time: MM:SS"
 		    int mins = totalSec / 60;
 		    int secs = totalSec % 60;
 		    // snprintf is faster and write exactly the number of characters needed
@@ -681,7 +656,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		                  "Rings: %2d/10   Time: %02d:%02d",
 		                  passedCount, mins, secs);
 
-		    // Remove old text and print a new one
+		    // remove old text and print a new one
 		    menuTxt.removeText(HUD_ID); // HUD_ID = 2
 		    menuTxt.print(
 		        0.0f, 0.85f,
@@ -695,14 +670,14 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 		}
 
 	    // Verify gameOver
-	    if (gameTime <= 0.0f) { // Lost condition
+	    if (gameTime <= 0.0f) { // lose condition
 	        gameOver = -1.0f;
 	        UBO_overlay[2].visible = true;
 			menuTxt.removeText(2);
 			menuTxt.removeText(3);
 			menuTxt.removeText(4);
 	        state = AppState::GameOver;
-	    } else if (passedCount == static_cast<int>(ringPassed.size())) { // Win condition
+	    } else if (passedCount == static_cast<int>(ringPassed.size())) { // win condition
 	        gameOver = 1.0f;
 	        UBO_overlay[1].visible = true;
 			menuTxt.removeText(2);
@@ -936,9 +911,6 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
     }
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // This function creates a look-at matrix that rotates the camera to look in the direction specified by Angs
 glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs)
 {
@@ -950,18 +922,12 @@ glm::mat4 DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs)
     return Rz * Rx * Ry * T; // Translation -> Rotation
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 void DroneSimulator::setCameraMode(GLFWwindow* w) {
     if (glfwGetKey(w, GLFW_KEY_I)) { thirdPerson=true; topAngle=false; firstPerson=false;  } // 3-rd
     if (glfwGetKey(w, GLFW_KEY_O)) { thirdPerson=false; topAngle=true; firstPerson=false;  } // 1-st
     if (glfwGetKey(w, GLFW_KEY_P)) { thirdPerson=false; topAngle=false; firstPerson=true;  } // 1-st
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // Get the drone input from the keyboard and update the drone position and orientation
 void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT)
 {
@@ -1016,9 +982,6 @@ void DroneSimulator::getDroneInput(GLFWwindow* w, float deltaT)
 	gameOver = this->checkRingPassage(global_pos_drone, ringPositions, ringPassed);
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // This function updates the color and intensity of the light source based on the elapsed time
 const glm::vec3 dawnColor = glm::vec3(1.0f, 0.45f, 0.2f);
 const glm::vec3 noonColor = glm::vec3(1.0f, 1.0f, 0.95f);
@@ -1050,9 +1013,6 @@ void DroneSimulator::updateGlobalUBO(GlobalUniformBufferObject& gubo, float elap
 	}
 };
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 void DroneSimulator::reset()
 {
 	gameOver = 0.0f;
@@ -1075,9 +1035,6 @@ void DroneSimulator::reset()
 	lastTimeStr = "";
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // Load the mountain points from the OBJ file and apply transformations, so we can have all the points to set boundaries
 void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points)
 {
@@ -1129,9 +1086,6 @@ void DroneSimulator::loadMountainPoints(std::vector<glm::vec3>& points)
 	std::cout << "Loaded " << points.size() << " mountain vertices.\n";
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // This function checks if the drone is too close to any mountain point
 bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mountainPoints, float threshold)
 {
@@ -1142,9 +1096,6 @@ bool DroneSimulator::isTooCloseToMountain(const glm::vec3& pos, const std::vecto
 	return false;
 }
 
-//************************************************************************************************
-//************************************************************************************************
-//************************************************************************************************
 // This function checks if the drone has passed through any ring and updates the passed vector.
 float DroneSimulator::checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius)
 {
