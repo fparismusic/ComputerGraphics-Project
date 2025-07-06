@@ -58,9 +58,9 @@ protected:
 	int HUD_ID = 2;
 
 	// --- Drone parameters ---
-	bool seenCenter   = true;		// 3-rd person camera
-	bool seenFollow   = false;		// 1-st person camera
-	bool seenDrone    = false;		// 1-st person camera
+	bool thirdPerson   = true;		// 3-rd person camera
+	bool topAngle   = false;		// 1-st person camera
+	bool firstPerson    = false;		// 1-st person camera
 	glm::vec3 global_pos_drone = glm::vec3(-1000.0f, 250.0f, 130.0f);  // Drone's world coordinates
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 

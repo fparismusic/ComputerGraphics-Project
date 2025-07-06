@@ -634,9 +634,9 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	        std::chrono::high_resolution_clock::now() - gameStartTime).count();
 			gameTime = std::max(0.0f, initialGameDuration - elapsed);
 		if (gameTime < 0.1f) {
-		    seenCenter = false;
-		    seenFollow = false;
-		    seenDrone  = true;
+		    thirdPerson = false;
+		    topAngle = false;
+		    firstPerson  = true;
 		}
 
 	    // Input drone and collisions (checkRingPassage inside)
@@ -793,9 +793,9 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 
 
 		case AppState::GameOver:
-  			seenCenter = false;
-			seenFollow = false;
-			seenDrone  = true;
+  			thirdPerson = false;
+			topAngle = false;
+			firstPerson  = true;
 
 			// bind overlay win/lose
 			for (int i = 0; i < 3; ++i)
@@ -812,25 +812,42 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	}
 
     // ─── View and proj matrix ───────────────
-    glm::mat4 proj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 5000.0f);
+     float fovDegrees = 45.0f;
+    if (firstPerson) {
+        fovDegrees = 30.0f;   // tighter, more zoomed in
+    }
+    glm::mat4 proj = glm::perspective(glm::radians(fovDegrees), Ar, 0.1f, 5000.0f);
     proj[1][1] *= -1;
 
     glm::mat4 view;
-    if (seenCenter) {
+    if (thirdPerson) {
         glm::vec3 offset = glm::vec3(0, 0, 6.4f * DRONE_SCALE);
         glm::mat4 R = glm::rotate(glm::mat4(1.0f), droneYaw,   glm::vec3(0,1,0))
                     * glm::rotate(glm::mat4(1.0f), dronePitch, glm::vec3(1,0,0))
                     * glm::rotate(glm::mat4(1.0f), droneRoll,  glm::vec3(0,0,1));
         glm::vec3 camP = global_pos_drone + glm::vec3(R * glm::vec4(offset,0.0f));
-        glm::vec3 up  = glm::normalize(glm::vec3(R * glm::vec4(0,1,0,0)));
+        glm::vec3 up   = glm::normalize(glm::vec3(R * glm::vec4(0,1,0,0)));
         view = glm::lookAt(camP, global_pos_drone, up);
     }
-    else if (seenFollow) {
-        glm::vec3 camP = global_pos_drone + glm::vec3(0, 4.0f*DRONE_SCALE, 1.5f*DRONE_SCALE);
-        view = LookInDirMat(camP, {droneYaw, dronePitch, droneRoll});
-    }
+ else if (topAngle) {
+    // follow from top-behind with an angle
+    const float height       = 15.0f * DRONE_SCALE;    
+    const float pitchDegrees = 20.0f;                   
+    const float pitchRad     = glm::radians(pitchDegrees);
+    const float horizDist    = height / tan(pitchRad);  
+
+    glm::mat4 R_yaw = glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0));
+
+    glm::vec4 localOff = glm::vec4(0.0f, height, horizDist, 1.0f);
+    
+    glm::vec3 worldOff = glm::vec3(R_yaw * localOff);
+
+    glm::vec3 camP = global_pos_drone + worldOff;
+
+    view = LookInDirMat(camP,glm::vec3(droneYaw,-pitchRad,0.0f));
+}
     else {
-        // seenDrone
+        // firstPerson
         glm::vec3 camP = global_pos_drone + glm::vec3(
             glm::rotate(glm::mat4(1.0f), droneYaw, glm::vec3(0,1,0))
             * glm::vec4(0, 1.5f*DRONE_SCALE, 0, 1));
@@ -923,9 +940,9 @@ glm::mat4   DroneSimulator::LookInDirMat(glm::vec3 Pos, glm::vec3 Angs) {
 //************************************************************************************************
 //************************************************************************************************
 void DroneSimulator::setCameraMode(GLFWwindow* w) {
-    if (glfwGetKey(w, GLFW_KEY_I)) { seenCenter=true; seenFollow=false; seenDrone=false;  } // 3-rd
-    if (glfwGetKey(w, GLFW_KEY_O)) { seenCenter=false; seenFollow=true; seenDrone=false;  } // 1-st
-    if (glfwGetKey(w, GLFW_KEY_P)) { seenCenter=false; seenFollow=false; seenDrone=true;  } // 1-st
+    if (glfwGetKey(w, GLFW_KEY_I)) { thirdPerson=true; topAngle=false; firstPerson=false;  } // 3-rd
+    if (glfwGetKey(w, GLFW_KEY_O)) { thirdPerson=false; topAngle=true; firstPerson=false;  } // 1-st
+    if (glfwGetKey(w, GLFW_KEY_P)) { thirdPerson=false; topAngle=false; firstPerson=true;  } // 1-st
 }
 
 //************************************************************************************************
@@ -1032,9 +1049,9 @@ void DroneSimulator::reset() {
 	CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
 	CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
-	seenCenter   = true;
-	seenFollow   = false;
-	seenDrone    = false;
+	thirdPerson   = true;
+	topAngle   = false;
+	firstPerson    = false;
 	global_pos_drone = glm::vec3(-1000.0f, 250.0f, 130.0f);
 	droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 
