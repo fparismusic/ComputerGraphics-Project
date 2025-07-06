@@ -6,38 +6,37 @@
 
 ## About Us
 ### Meet Our Team
-<table style="width:100%; table-layout: fixed;">
+
+<table style="width:100%; table-layout:fixed;">
   <tr>
-    <td style="text-align: center; vertical-align: top;">
-      <img src="images/Moein.jpg" alt="Moein Peyghambar Zadeh" width="200" style="border-radius: 50%;">
+    <td style="width:33.33%; text-align:center; vertical-align:top;">
+      <img src="images/Moein.jpg" alt="Moein Peyghambar Zadeh" style="width:150px; height:150px; border-radius:50%; object-fit:cover;"><br>
       <h4>Moein PeyghambarZadeh</h4>
-      <p>MSc in Geoinformatics Engineering @POLIMI | BSc in Computer Engineering @Shdu<br>
-      </p>
+      <p>MSc in Geoinformatics Engineering @POLIMI<br>BSc in Computer Engineering @Shdu</p>
       <p>
-        <a href="mailto:seyed.peyghambar@mail.polimi.it" class="icon solid fa-envelope">Mail</a> |
-        <a href="https://github.com/moeinp70" class="icon brands fa-github">Github</a> |
-        <a href="https://www.linkedin.com/in/moein-peyghambarzadeh/" class="icon brands fa-linkedin">Linkedin</a>
+        <a href="mailto:seyed.peyghambar@mail.polimi.it">Mail</a> |
+        <a href="https://github.com/moeinp70" target="_blank">GitHub</a> |
+        <a href="https://www.linkedin.com/in/moein-peyghambarzadeh/" target="_blank">LinkedIn</a>
       </p>
     </td>
-    <td style="text-align: center; vertical-align: top;">
-      <img src="images/Filippo.jpg" alt="Saeed Mehdizadeh" width="200" style="border-radius: 50%;">
+    <td style="width:33.33%; text-align:center; vertical-align:top;">
+      <img src="images/Filippo.jpg" alt="Filippo Paris" style="width:150px; height:150px; border-radius:50%; object-fit:cover;"><br>
       <h4>Filippo Paris</h4>
-      <p>MSc in Music & Acoustic Engineering @POLIMI | BSc in Computer Engineering @UniBo <br>
-      </p>
+      <p>MSc in Music & Acoustic Engineering @POLIMI<br>BSc in Computer Engineering @UniBo</p>
       <p>
-        <a href="mailto:filo.paris@gmail.com" class="icon solid fa-envelope">Mail</a> |
-        <a href="https://github.com/fparismusic" class="icon brands fa-github">Github</a> |
-        <a href="http://www.linkedin.com/in/filippoparis" class="icon brands fa-linkedin">Linkedin</a>
+        <a href="mailto:filo.paris@gmail.com">Mail</a> |
+        <a href="https://github.com/fparismusic" target="_blank">GitHub</a> |
+        <a href="http://www.linkedin.com/in/filippoparis" target="_blank">LinkedIn</a>
       </p>
     </td>
-    <td style="text-align: center; vertical-align: top;">
-      <img src="images/Fra.jpg" alt="Ali Moeinkhah" width="200" style="border-radius: 50%;">
-      <h4> Francesco Moretti </h4>
-      <p>MSc in Music & Acoustic Engineering @POLIMI<br></p>
+    <td style="width:33.33%; text-align:center; vertical-align:top;">
+      <img src="images/Fra.jpg" alt="Francesco Moretti" style="width:150px; height:150px; border-radius:50%; object-fit:cover;"><br>
+      <h4>Francesco Moretti</h4>
+      <p>MSc in Music & Acoustic Engineering @POLIMI</p>
       <p>
-        <a href="mailto:morettifra.23@gmail.com" class="icon solid fa-envelope">Mail</a> |
-        <a href="https://github.com/fra-moretti" class="icon brands fa-github">Github</a> |
-        <a href="https://www.linkedin.com/in/francesco-moretti-0853852aa/" class="icon brands fa-linkedin">Linkedin</a>
+        <a href="mailto:morettifra.23@gmail.com">Mail</a> |
+        <a href="https://github.com/fra-moretti" target="_blank">GitHub</a> |
+        <a href="https://www.linkedin.com/in/francesco-moretti-0853852aa/" target="_blank">LinkedIn</a>
       </p>
     </td>
   </tr>
