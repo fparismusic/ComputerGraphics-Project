@@ -775,7 +775,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 				gameTime    = initialGameDuration;
 				gameStarted = false;
 				state       = AppState::Playing;
-				showStartText = true;
+
 				RebuildPipeline();
 			}
 		break;
@@ -1013,8 +1013,7 @@ void DroneSimulator::updateGlobalUBO(GlobalUniformBufferObject& gubo, float elap
 void DroneSimulator::reset()
 {
 	gameOver = 0.0f;
-	showStartText = false;
-	showCommandsKeyboard = false;
+
 
 	CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
 

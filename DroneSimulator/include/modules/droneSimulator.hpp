@@ -28,8 +28,8 @@ protected:
 	AppState state = AppState::Menu;
 	TextMaker menuTxt;
 	float gameOver = 0.0f;
-	bool showStartText = false;
-	bool showCommandsKeyboard = false;
+
+
 	bool prevEscPressed = false;
 
 	// --- window parameters ---
