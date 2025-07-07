@@ -511,16 +511,6 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
             );
         }
 
-        // (“back to Menu” text)
-        menuTxt.print(
-            0.0f, -0.8f,
-            "[B] Back to Menu", 3, "SS",
-            true, true, false,
-            TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-            {1,1,1,1},{0,0,0,0.7f}
-        );
-        menuTxt.updateCommandBuffer();
-
         RP.end(commandBuffer);
         return;
     }
@@ -987,7 +977,7 @@ void DroneSimulator::updateGlobalUBO(GlobalUniformBufferObject& gubo, float elap
 {
 	gubo.time = elapsedTime;
 
-	// 3 min  cycle
+	// 4, 5, or 6 min  cycle
 	float t = fmod(elapsedTime, initialGameDuration);
 
 	// sun color and direction
@@ -1096,7 +1086,7 @@ float DroneSimulator::checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3
 	for (size_t i = 0; i < rings.size(); ++i) {
 		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
 			passed[i] = true;
-			ringScale[i] = 0.0f;                   // <— Hiding the ring
+			ringScale[i] = 0.0f;                   // <— hiding the ring
 			std::cout << "Great, Ring " << (i + 1) << " passed!" << std::endl;
 		}
 	}
