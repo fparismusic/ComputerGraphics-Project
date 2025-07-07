@@ -850,7 +850,6 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
     // ─── Global UBO ────────────────────────────────────────────────────────────────────────────────────────────
     GUBO.proj       = proj;
     GUBO.view       = view;
-    GUBO.cameraPos  = CamPos = glm::vec3(glm::inverse(view)[3]);
     GUBO.lightDir   = glm::normalize(glm::vec3(0,1,0)); // Direction of the light source
     GUBO.time       = totalElapsedTime;
     updateGlobalUBO(GUBO, totalElapsedTime);
@@ -1016,8 +1015,6 @@ void DroneSimulator::reset()
 	showStartText = false;
 	showCommandsKeyboard = false;
 
-	CamPos = glm::vec3(0.0f, 0.3f, 2.0f);
-	CamYaw = 0.0f, CamPitch = 0.0f, CamRoll = 0.0f, CamDist = 0.0f;
 
 	thirdPerson   = true;
 	topAngle   = false;

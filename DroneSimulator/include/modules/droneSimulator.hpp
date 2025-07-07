@@ -35,12 +35,6 @@ protected:
 	// --- window parameters ---
 	float Ar; // aspect ratio
 
-	// --- camera controls ---
-	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);		// initial camera position
-	float	CamYaw = 0.0f,										// horizontal rotation (left/right)
-			CamPitch = 0.0f,									// vertical rotation (up/down)
-			CamRoll = 0.0f,										// roll rotation (tilt)
-			CamDist = 0.0f;										// distance of the camera from the drone
 
 	// --- time parameters ---
 	std::chrono::time_point<std::chrono::high_resolution_clock> gameStartTime;
