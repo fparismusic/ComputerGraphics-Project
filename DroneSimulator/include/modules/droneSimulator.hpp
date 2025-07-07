@@ -35,6 +35,8 @@ protected:
 	// --- window parameters ---
 	float Ar; // aspect ratio
 
+	// --- camera controls ---
+	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);		// initial camera position
 
 	// --- time parameters ---
 	std::chrono::time_point<std::chrono::high_resolution_clock> gameStartTime;
