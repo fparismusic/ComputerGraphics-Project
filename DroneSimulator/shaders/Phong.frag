@@ -42,7 +42,7 @@ void main() {
     // this models the mirror-like shiny spots on surfaces where light reflects toward the camera
 
     // components
-    vec3 ambient  = albedo; // not so much correct, but works for now
+    vec3 ambient  = albedo;
     vec3 diffuse = NdotL * albedo * gubo.lightColor * gubo.lightIntensity;
     vec3 specular = spec * gubo.lightColor * gubo.lightIntensity;
 
