@@ -13,22 +13,22 @@ layout(location = 1) in vec2 inUV;        // coords UV
 layout(location = 2) in vec3 inNormal;    // nornal model
 layout(location = 3) in vec4 inTangent;   // model tangent (w = bitangent-sign)
 
-layout(location = 0) out vec3 fragPos;      // posizione mondo
+layout(location = 0) out vec3 fragPos;      // world position
 layout(location = 1) out vec2 fragUV;       // UV
-layout(location = 2) out vec3 fragNormal;   // normale mondo
-layout(location = 3) out vec4 fragTangent;  // tangente mondo
+layout(location = 2) out vec3 fragNormal;   // world model
+layout(location = 3) out vec4 fragTangent;  // world tangent
 
 void main() {
-    // We take the position in world-space
+    // we take the position in world-space
     fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
 
-    // We take the normal in world-space
+    // we take the normal in world-space
     fragNormal = normalize((ubo.nMat * vec4(inNormal, 0.0)).xyz);
     fragTangent = vec4(normalize(mat3(ubo.mMat) * inTangent.xyz), inTangent.w);
 
     // UV coordinates
     fragUV = inUV;
 
-    // Clip‐space (intermediate phase before NDC and screen-space)
+    // clip‐space (intermediate phase before NDC and screen-space)
     gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
 }

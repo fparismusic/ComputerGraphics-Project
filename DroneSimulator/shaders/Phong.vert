@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-// Descriptors
+// descriptors
 // set 0, binding 0: Global UBO (cameraPos, lightDir, lightColor, ecc.)
 // set 1, binding 0: UBO specific of the mesh/model (mvpMat, model, normalMatrix)
 
@@ -20,15 +20,15 @@ layout(location = 1) out vec2 fragUV;      // UV coordinates
 layout(location = 2) out vec3 fragNormal;  // normal world‐space
 
 void main() {
-    // We take the position in world-space
+    // we take the position in world-space
     fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
 
-    // We take the normal in world-space
+    // we take the normal in world-space
     fragNormal = (ubo.nMat * vec4(inNormal, 0.0)).xyz;
 
-    // Pass the UV coordinates to the fragment shader
+    // pass the UV coordinates to the fragment shader
     fragUV = inUV;
 
-    // Clip‐space (intermediate phase before NDC and screen-space)
+    // clip‐space (intermediate phase before NDC and screen-space)
     gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
 }

@@ -8,7 +8,7 @@ layout(location = 0) in vec2 fragUV;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // Sample the texture, fragUV tells the shader which part of the texture to sample for each pixel
+    // sample the texture, fragUV tells the shader which part of the texture to sample for each pixel
     vec4 color = texture(tex, fragUV);
     outColor = vec4(color.rgb, color.a);
 }

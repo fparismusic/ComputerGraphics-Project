@@ -21,32 +21,32 @@ layout(location = 0) out vec4 outColor;
 
 
 void main() {
-    // We sample the sky texture
+    // we sample the sky texture
     float v = clamp(fragTexCoord.y, 0.0, 1.0);
     vec3 srgbColor = texture(skybox, vec2(fragTexCoord.x, v)).rgb;
 
-    // We apply a Gamma correction: convert from sRGB to linear space
+    // we apply a Gamma correction: convert from sRGB to linear space
     // (linearize the color for correct lighting operations)
     float gamma = 2.2; //standard gamma value
     vec3 linearColor = pow(srgbColor, vec3(gamma));
 
-    // Computing a fog factor that increases near the horizon
+    // computing a fog factor that increases near the horizon
     float fogStart = 0.50;   // v-coordinate where fog starts
     float fogEnd   = 0.55;   // v-coordinate where fog is fully horizonColor
     float t = smoothstep(fogStart, fogEnd, fragTexCoord.y);
     float fogFactor = pow(t, 3.0); // Smooth transition for fog effect
 
-    // Define a horizon tint using scene light
+    // define a horizon tint using scene light
     vec3 horizonColor = gubo.lightColor * gubo.lightIntensity;
-    // Blend between sky and horizon tint
+    // blend between sky and horizon tint
     linearColor = mix(linearColor, horizonColor, fogFactor);
 
-    // Time-based subtle brightness modulation
+    // time-based subtle brightness modulation
     linearColor *= 1.0 + 0.03 * sin(gubo.time);
 
-    // Converting back to sRGB space
+    // converting back to sRGB space
     vec3 finalColor = pow(linearColor, vec3(1.0 / gamma));
 
-    // --- Output ---
+    // output
     outColor = vec4(finalColor, 1.0);
 }

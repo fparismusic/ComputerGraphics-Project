@@ -14,7 +14,7 @@ void main()
 {
     fragTexCoord = inUV;
     vec4 pos = ubo.mvpMat * vec4(inPosition, 1.0);
-    // Clip-space (intermediate phase before NDC and screen-space)
-    // Set z = w to force depth to 1.0 (furthest possible), so skybox is always rendered in the background
+    // clip-space (intermediate phase before NDC and screen-space)
+    // set z = w to force depth to 1.0 (furthest possible), so skybox is always rendered in the background
     gl_Position = pos.xyww;
 }

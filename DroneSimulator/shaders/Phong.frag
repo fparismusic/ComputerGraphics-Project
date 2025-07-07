@@ -21,27 +21,27 @@ layout(location = 2) in vec3 fragNormal;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // Albedo
+    // albedo
     vec3 albedo = texture(texBaseColor, fragUV).rgb;
 
-    // Normal map in world‑space [-1,1] -> mountain normal
+    // normal map in world‑space [-1,1] -> mountain normal
     vec3 n_world = normalize(texture(texExtra, fragUV).xyz * 2.0 - 1.0);
 
-    // For accuracy we normalize
-    vec3 L = normalize(gubo.lightDir);              // Light direction
-    vec3 V = normalize(gubo.cameraPos - fragPos);   // View direction
+    // for accuracy we normalize
+    vec3 L = normalize(gubo.lightDir);              // light direction
+    vec3 V = normalize(gubo.cameraPos - fragPos);   // view direction
 
-    // Diffuse
-    // This calculates the cosine of the angle between the surface normal n_world and the light direction L
-    // Diffuse reflection depends on how directly the surface faces the light
+    // diffuse
+    // this calculates the cosine of the angle between the surface normal n_world and the light direction L
+    // diffuse reflection depends on how directly the surface faces the light
     float NdotL = max(dot(n_world, L), 0.0);
 
     // Blinn-Phong specular
     vec3 H = normalize(L + V); // Halfway vector between light and view direction
     float spec = pow(max(dot(n_world, H), 0.0), 32.0); // 32.0 is the shininess factor
-    // This models the mirror-like shiny spots on surfaces where light reflects toward the camera
+    // this models the mirror-like shiny spots on surfaces where light reflects toward the camera
 
-    // Components
+    // components
     vec3 ambient  = albedo; // not so much correct, but works for now
     vec3 diffuse = NdotL * albedo * gubo.lightColor * gubo.lightIntensity;
     vec3 specular = spec * gubo.lightColor * gubo.lightIntensity;
