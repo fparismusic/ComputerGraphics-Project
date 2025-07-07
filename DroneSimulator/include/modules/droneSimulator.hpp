@@ -58,12 +58,12 @@ protected:
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 
 	// --- valid bounds (world space) for the drone ---
-	const float minX = -3000.0f;
-	const float maxX =  1000.0f;
+	const float minX = -2960.0f;
+	const float maxX =  960.0f;
 	const float minY =  250.0f;
 	const float maxY =  500.0f;
-	const float minZ = -3000.0f;
-	const float maxZ =  1000.0f;
+	const float minZ = -2960.0f;
+	const float maxZ =  960.0f;
 
 	// --- render pass ---
 	RenderPass RP;
