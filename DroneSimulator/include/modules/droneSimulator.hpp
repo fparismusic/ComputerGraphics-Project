@@ -1,10 +1,10 @@
-#pragma once // We ensure that the file is only included once during compilation
+#pragma once // we ensure that the file is only included once during compilation
 
-// This has been adapted from the Vulkan tutorial
+// this has been adapted from the Vulkan tutorial
 #include <sstream>
 
 #include <json.hpp>
-#include <random> // For random number generation
+#include <random> // for random number generation
 
 #include "modules/Starter.hpp"
 #include "modules/TextMaker.hpp"
@@ -17,14 +17,14 @@
 class DroneSimulator : public BaseProject {
 protected:
 
-	// --- Game States ---
+	// --- game states ---
 	enum class AppState { Menu, Playing, GameOver };
 
-	// --- Difficulty parameter --
+	// --- difficulty parameter --
 	enum class Difficulty { Easy, Medium, Hard };
 	Difficulty currentDifficulty = Difficulty::Medium;
 
-	// --- Menu fields ---
+	// --- menu fields ---
 	AppState state = AppState::Menu;
 	TextMaker menuTxt;
 	float gameOver = 0.0f;
@@ -32,17 +32,17 @@ protected:
 	bool showCommandsKeyboard = false;
 	bool prevEscPressed = false;
 
-	// --- Window parameters ---
-	float Ar; // Aspect Ratio
+	// --- window parameters ---
+	float Ar; // aspect ratio
 
-	// --- Camera controls ---
-	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);		// Initial camera position
-	float	CamYaw = 0.0f,										// Horizontal rotation (left/right)
-			CamPitch = 0.0f,									// Vertical rotation (up/down)
-			CamRoll = 0.0f,										// Roll rotation (tilt)
-			CamDist = 0.0f;										// Distance of the camera from the drone
+	// --- camera controls ---
+	glm::vec3 CamPos = glm::vec3(0.0f, 0.3f, 2.0f);		// initial camera position
+	float	CamYaw = 0.0f,										// horizontal rotation (left/right)
+			CamPitch = 0.0f,									// vertical rotation (up/down)
+			CamRoll = 0.0f,										// roll rotation (tilt)
+			CamDist = 0.0f;										// distance of the camera from the drone
 
-	// --- Time parameters ---
+	// --- time parameters ---
 	std::chrono::time_point<std::chrono::high_resolution_clock> gameStartTime;
 	float totalElapsedTime = 0.0f;
 	float initialGameDuration = 300.0f;		// 5 minutes
@@ -50,20 +50,20 @@ protected:
 	bool gameStarted = false;
 
 	// --- HUD tracking variables ---
-	int lastPassedCount = -1;		// Tracking the number of passed rings
+	int lastPassedCount = -1;		// tracking the number of passed rings
 	int lastTotalSec    = -1;
 	char hudBuffer[32];				// buffer big enough
-	std::string lastTimeStr = "";   // Tracking time
+	std::string lastTimeStr = "";   // tracking time
 	int HUD_ID = 2;
 
-	// --- Drone parameters ---
+	// --- drone parameters ---
 	bool thirdPerson   = true;		
 	bool topAngle   = false;		
 	bool firstPerson    = false;		
 	glm::vec3 global_pos_drone = glm::vec3(-1000.0f, 250.0f, 130.0f);  // drone's world coordinates
 	float droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 
-	// --- Valid bounds (world space) for the drone ---
+	// --- valid bounds (world space) for the drone ---
 	const float minX = -3000.0f;
 	const float maxX =  1000.0f;
 	const float minY =  250.0f;
@@ -71,10 +71,10 @@ protected:
 	const float minZ = -3000.0f;
 	const float maxZ =  1000.0f;
 
-	// --- Render Pass ---
+	// --- render pass ---
 	RenderPass RP;
 
-	// --- Descriptor Set Layouts ---
+	// --- descriptor set layouts ---
 	DescriptorSetLayout
 		DSL_map,
 		DSL_drone,
@@ -82,36 +82,36 @@ protected:
 		DSL_skyBox,
 		DSL_global;
 
-	// --- Vertex Descriptors ---
+	// --- vertex descriptors ---
 	VertexDescriptor VD_phong, VD_pbr, VD_overlay, VD_skyBox;
 
-	// --- Pipelines ---
+	// --- pipelines ---
 	Pipeline
 		P_phong,
 		P_pbr,
 		P_overlay,
 		P_skyBox;
 
-	// --- Model ---
+	// --- model ---
 	Model
 		M_drone,
 		M_overlay[3],
 		M_skyBox;
 
-	// --- Textures ---
+	// --- textures ---
 	Texture
 		tex_drone_baseColor, tex_drone_normal, tex_drone_roughness, tex_drone_emissive,
 		tex_overlay[3],
 		tex_skyBox;
 
-	// --- Descriptor Sets ---
+	// --- descriptor sets ---
 	DescriptorSet
 		DS_drone,
 		DS_skyBox,
 		DS_overlay[3],
 		DS_global;
 
-	// --- Uniform Buffers ---
+	// --- uniform buffers ---
 	UniformBufferObject
 		UBO_drone,
 		ubosStart{},
@@ -121,13 +121,13 @@ protected:
 	SkyBoxUniformBufferObject UBO_skyBox;
 	GlobalUniformBufferObject GUBO;
 
-	// --- Scene ---
+	// --- scene ---
 	Scene SC;
 	std::vector<VertexDescriptorRef>  VDRs;		// JSON Vertex Descriptors
 	std::vector<TechniqueRef> PRs;				// JSON Techniques
 	std::vector<glm::vec3> mountainPoints;
 
-	// --- Rings ---
+	// --- rings ---
 	std::vector<glm::vec3> ringPositions = {
 		{60.753, 410.153, 201.635},
 		{329.919, 299.502, -141.467},
@@ -141,63 +141,63 @@ protected:
 		{-2088.51, 416.687, -195.252}
 	};
 
-	// Flags to track which rings were passed
+	// flags to track which rings were passed
 	std::vector<bool> ringPassed = std::vector<bool>(10, false);
 
 	std::vector<float> ringScale;
-	std::vector<glm::mat4> originalRingWm; // Stores the world matrix of each ring
+	std::vector<glm::mat4> originalRingWm; // stores the world matrix of each ring
 
 
-    // Here we set the main application parameters (window size, title, vsync)
+    // here we set the main application parameters (window size, title, vsync)
 	void setWindowParameters();
 
-	// What to do when the window changes size
+	// what to do when the window changes size
 	void onWindowResize(int w, int h);
 
-    // Here we load and setup all our Vulkan Models and Textures.
-	// Here we also create our DescriptorSetLayouts and load the Shaders for the pipelines
+    // here we load and setup all our Vulkan Models and Textures.
+	// here we also create our DescriptorSetLayouts and load the Shaders for the pipelines
     void localInit();
 
-    // Here we create our pipelines and Descriptor Sets
+    // here we create our pipelines and Descriptor Sets
 	void pipelinesAndDescriptorSetsInit();
 
-    // Here we destroy our pipelines and Descriptor Sets
-	// All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
+    // here we destroy our pipelines and Descriptor Sets
+	// all the object classes defined in Starter.hpp have a method .cleanup() for this purpose
 	void pipelinesAndDescriptorSetsCleanup();
 
-    // Here we destroy all the Models, Texture and Desc. Set Layouts we created
-	// All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
+    // here we destroy all the Models, Texture and Desc. Set Layouts we created
+	// all the object classes defined in Starter.hpp have a method .cleanup() for this purpose
 	// we also have to destroy the pipelines: since they need to be rebuilt, they have two methods: .cleanup() recreates them, while .destroy() delete them completely
 	void localCleanup();
 
-	// Here it is the creation of the command buffer:
+	// here it is the creation of the command buffer:
 	// we send to the GPU all the objects we want to draw, with their buffers and textures
 	static void populateCommandBufferAccess(VkCommandBuffer commandBuffer, int currentImage, void *Params);
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage);
 
-    // Here is where we update the uniforms.
+    // here is where we update the uniforms.
 	void updateUniformBuffer(uint32_t currentImage);
 
 	// LookInDir matrix
 	glm::mat4 LookInDirMat(glm::vec3 Pos, glm::vec3 Angs);
 
-	// Control camera positions
+	// control camera positions
 	void setCameraMode(GLFWwindow* w);
 
-	// Control drone movements
+	// control drone movements
 	void getDroneInput(GLFWwindow* w, float deltaT);
 
-	// Control GUBO light color
+	// control GUBO light color
 	void updateGlobalUBO(GlobalUniformBufferObject& gubo, float elapsedTime);
 
 	void reset();
 
-	// Get mountain vertices for bounds
+	// get mountain vertices for bounds
 	void loadMountainPoints(std::vector<glm::vec3>& points);
 
-	// Bounds checking for the drone w.r.t. mountains
+	// bounds checking for the drone w.r.t. mountains
 	bool isTooCloseToMountain(const glm::vec3& pos, const std::vector<glm::vec3>& mountainPoints, float threshold = 5.0f);
 
-	// Logic of passing through rings
+	// logic of passing through rings
 	float checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3>& rings, std::vector<bool>& passed, float radius = 10.0f);
 };
