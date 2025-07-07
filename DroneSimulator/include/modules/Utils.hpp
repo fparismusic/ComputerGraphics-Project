@@ -6,8 +6,7 @@
 #define M_PI		3.14159265358979323846	/* pi */
 #define M_PI_2		1.57079632679489661923	/* pi/2 */
 
-// The uniform buffer objects data structures
-// Remember to use the correct alignas(...) value
+// the uniform buffer objects data structures
 //        float : alignas(4)
 //        vec2  : alignas(8)
 //        vec3  : alignas(16)
@@ -16,11 +15,11 @@
 //        mat4  : alignas(16)
 // alignas(n) tells the compiler to align each variable in memory according to Vulkan's strict rules
 struct UniformBufferObject {
-	// Model-View-Projection matrix: used in vertex shader to transform object coordinates to screen space.
+	// model-View-Projection matrix: used in vertex shader to transform object coordinates to screen space.
 	alignas(16) glm::mat4 mvpMat;
-	// Model matrix: it positions and orients the object in the world.
+	// model matrix: it positions and orients the object in the world.
 	alignas(16) glm::mat4 mMat;
-	// Normal matrix: used to transform normals correctly, especially when the model is scaled.
+	// normal matrix: used to transform normals correctly, especially when the model is scaled.
 	alignas(16) glm::mat4 nMat;
 };
 
@@ -44,7 +43,7 @@ struct OverlayUniformBlock {
 	alignas(4) float visible;
 };
 
-// The vertices data structures
+// the vertices data structures
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec2 UV;
