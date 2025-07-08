@@ -29,9 +29,6 @@ protected:
 	TextMaker menuTxt;
 	float gameOver = 0.0f;
 
-
-	bool prevEscPressed = false;
-
 	// --- window parameters ---
 	float Ar; // aspect ratio
 

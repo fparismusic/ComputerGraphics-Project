@@ -589,12 +589,11 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 	bool bPressed   = glfwGetKey(window, GLFW_KEY_B)      == GLFW_PRESS;
 	bool enterPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
 
-	bool escJustPressed = escPressed && !prevEscPressed;
 	const float DRONE_SCALE = 0.065f;
 
 	// ─── GAME LOGIC (only PLAYING) ────
 	if (state == AppState::Playing) {
-		if (escJustPressed) {
+		if (escPressed) {
 	        // ESC pressed: reset game
 			menuTxt.removeText(2);
 			menuTxt.removeText(3);
