@@ -1012,7 +1012,7 @@ void DroneSimulator::reset()
 	droneYaw = 0.0f, dronePitch = 0.0f, droneRoll = 0.0f;
 
 	ringPassed = std::vector<bool>(10, false);
-	ringScale  = std::vector<float>(10, 2.0f);  // ← reset ring visibility
+	ringScale  = std::vector<float>(10, 1.0f);  // ← reset ring visibility
 
 
 	// timer reset
