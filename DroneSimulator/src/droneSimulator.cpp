@@ -302,7 +302,7 @@ void DroneSimulator::localInit()
 					TRV_BOTTOM, // vertical anchor point
 					{1.0f,1.0f,1.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 	const char* diffLabel =
-		currentDifficulty==Difficulty::Easy   ? "Easy (6 minutes)" :
+		currentDifficulty==Difficulty::Easy   ? "Easy (5:30 minutes)" :
 		currentDifficulty==Difficulty::Medium?  "Medium (5 minutes)" :
 		                                        "Hard (4 minutes)";
 	menuTxt.print(
@@ -312,6 +312,13 @@ void DroneSimulator::localInit()
 		TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,
 		{1,1,1,1},{0,0,0,0.5f}
 	);
+
+	soloud.init();
+	ring.load("assets/sounds/ring.wav");
+	lose.load("assets/sounds/loser.wav");
+	win.load("assets/sounds/win.wav");
+	master.load("assets/sounds/master-generale.wav");
+	wav1.load("assets/sounds/menu.wav");
 }
 
 // here we create our pipelines and Descriptor Sets
@@ -429,6 +436,9 @@ void DroneSimulator::localCleanup()
 
 	// INIT TEXT
 	menuTxt.localCleanup();
+
+	soloud.stopAll();    // ferma tutti i suoni
+	soloud.deinit();
 }
 
 // for the JSON scene, we need to populate the command buffer once
@@ -446,6 +456,10 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
     // —— MENU ────────────────────────────────────────────────────────────────────────────────────────────────────
     if (state == AppState::Menu) {
         RP.begin(commandBuffer, currentImage);
+
+    	wav1.setLooping(true);
+    	soloud.stopAll();
+    	soloud.play(wav1);
 
         UBO_overlay[0].visible = true; // menu overlay is always visible in the menu state
         UBO_overlay[1].visible = false;
@@ -472,7 +486,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
 		// re-print the difficulty text
     	const char* diffText = "";
 	    switch (currentDifficulty) {
-			case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)";   break;
+			case Difficulty::Easy:   diffText = "Difficulty: Easy (5:30 minutes)";   break;
 			case Difficulty::Medium: diffText = "Difficulty: Medium (5 minutes)"; break;
 			case Difficulty::Hard:   diffText = "Difficulty: Hard (4 minutes)";   break;
 	    }
@@ -554,7 +568,7 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
 	// --- in-game text ---
 	menuTxt.print(
 	  -0.95f, -0.8f,
-	  "Filippo Paris\nFrancesco Moretti\nMoein Zadeh",
+	  "Filippo Paris - Drone Simulator",
 	  3, "CO",
 	  true, true, true,
 	  TAL_LEFT, TRH_LEFT, TRV_BOTTOM,
@@ -573,6 +587,9 @@ void DroneSimulator::populateCommandBuffer(VkCommandBuffer commandBuffer, int cu
 	    {1.0f,0.98f,0.9f,1.0f},
 		{0.2f, 0.2f, 0.2f, 1.0f}
 	);
+
+	soloud.stopAll();
+	soloud.play(master);
 
     RP.end(commandBuffer);
 }
@@ -662,6 +679,9 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 			menuTxt.removeText(2);
 			menuTxt.removeText(3);
 			menuTxt.removeText(4);
+	    	soloud.stopAll();
+	    	auto handle_lose = soloud.play(lose);
+	    	soloud.setVolume(handle_lose, 0.6f);
 	        state = AppState::GameOver;
 	    } else if (passedCount == static_cast<int>(ringPassed.size())) { // win condition
 	        gameOver = 1.0f;
@@ -669,6 +689,9 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 			menuTxt.removeText(2);
 			menuTxt.removeText(3);
 			menuTxt.removeText(4);
+	    	soloud.stopAll();
+	    	auto handle_win = soloud.play(win);
+	    	soloud.setVolume(handle_win, 0.6f);
 	        state = AppState::GameOver;
 	    }
 
@@ -734,7 +757,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 				// re-print difficulty (ID 2)
 				const char* diffText = "";
 				switch (currentDifficulty) {
-				  case Difficulty::Easy:   diffText = "Difficulty: Easy (6 minutes)";   break;
+				  case Difficulty::Easy:   diffText = "Difficulty: Easy (5:30 minutes)";   break;
 				  case Difficulty::Medium: diffText = "Difficulty: Medium (5 minutes)"; break;
 				  case Difficulty::Hard:   diffText = "Difficulty: Hard (4 minutes)";   break;
 				}
@@ -757,7 +780,7 @@ void DroneSimulator::updateUniformBuffer(uint32_t currentImage)
 
 				// set initial game duration based on difficulty
 				switch (currentDifficulty) {
-				  case Difficulty::Easy:   initialGameDuration = 6*60.0f; break;
+				  case Difficulty::Easy:   initialGameDuration = 5*60.0f + 30.0f; break;
 				  case Difficulty::Medium: initialGameDuration = 5*60.0f; break;
 				  case Difficulty::Hard:   initialGameDuration = 4*60.0f; break;
 				}
@@ -1089,6 +1112,8 @@ float DroneSimulator::checkRingPassage(glm::vec3 dronePos, std::vector<glm::vec3
 		if (!passed[i] && glm::distance(dronePos, rings[i]) < radius) {
 			passed[i] = true;
 			ringScale[i] = 0.0f;                   // <— hiding the ring
+			auto handle_ring = soloud.play(ring);
+			soloud.setVolume(handle_ring, 0.8f);
 			std::cout << "Great, Ring " << (i + 1) << " passed!" << std::endl;
 		}
 	}

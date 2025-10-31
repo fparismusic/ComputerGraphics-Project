@@ -107,6 +107,32 @@ elseif(WIN32)
 
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
+    # === SoLoud setup ===
+    set(SOLOUD_DIR "${CMAKE_SOURCE_DIR}/external/soloud-master")
+    # Core source files
+    file(GLOB SOLOUD_CORE
+            "${SOLOUD_DIR}/src/core/*.cpp"
+    )
+    # Audio source support (e.g., WAV decoding)
+    file(GLOB SOLOUD_AUDIO_SOURCES
+            "${SOLOUD_DIR}/src/audiosource/wav/*.cpp"
+            "${SOLOUD_DIR}/src/audiosource/wav/stb_vorbis.c"
+    )
+    # Backend per output audio (WINMM su Windows)
+    set(SOLOUD_BACKEND
+            "${SOLOUD_DIR}/src/backend/winmm/soloud_winmm.cpp"
+    )
+    # Crea la libreria statica SoLoud
+    add_library(soloud STATIC ${SOLOUD_CORE} ${SOLOUD_AUDIO_SOURCES} ${SOLOUD_BACKEND})
+    # Include per headers
+    target_include_directories(soloud PUBLIC "${SOLOUD_DIR}/include")
+    # Abilita backend WinMM
+    target_compile_definitions(soloud PUBLIC WITH_WINMM)
+    # Linka SoLoud al tuo progetto
+    target_link_libraries(${PROJECT_NAME} PRIVATE soloud)
+    # Linka winmm (necessario per il backend WINMM)
+    target_link_libraries(${PROJECT_NAME} PRIVATE winmm)
+
     find_package(Vulkan REQUIRED)
 
     foreach(dir IN LISTS Vulkan_INCLUDE_DIR INCLUDE_DIRS)
@@ -114,7 +140,7 @@ elseif(WIN32)
     endforeach()
 
     foreach(lib IN LISTS Vulkan_LIBRARIES LINK_LIBS)
-        target_link_libraries(${PROJECT_NAME} ${lib})
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${lib})
     endforeach()
 
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
@@ -146,6 +172,13 @@ elseif(WIN32)
     file(COPY ${SHADER_SPV_FILES} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
     file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)
     file(COPY ${CMAKE_SOURCE_DIR}/assets/models DESTINATION ${CMAKE_BINARY_DIR}/assets)
+
+    # Copia la cartella sounds in output build dir
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/assets/sounds"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/sounds"
+    )
 elseif(UNIX AND NOT APPLE)
     file(GLOB_RECURSE SOURCES src/*.cpp)
     file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)

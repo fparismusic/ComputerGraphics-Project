@@ -10,6 +10,8 @@
 #include "modules/TextMaker.hpp"
 #include "modules/Scene.hpp"
 #include "modules/Utils.hpp"
+#include <soloud.h>
+#include <soloud_wav.h>
 
 //-----------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------
@@ -17,12 +19,15 @@
 class DroneSimulator : public BaseProject {
 protected:
 
+	SoLoud::Soloud soloud;      // Engine
+	SoLoud::Wav wav1, master, win, lose, ring;
+
 	// --- game states ---
 	enum class AppState { Menu, Playing, GameOver };
 
 	// --- difficulty parameter --
 	enum class Difficulty { Easy, Medium, Hard };
-	Difficulty currentDifficulty = Difficulty::Medium;
+	Difficulty currentDifficulty = Difficulty::Easy;
 
 	// --- menu fields ---
 	AppState state = AppState::Menu;
